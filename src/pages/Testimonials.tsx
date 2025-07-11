@@ -91,21 +91,135 @@ const Testimonials = () => {
     }
   };
 
+  const downloadTestimonialAsImage = async (testimonial: Testimonial) => {
+    try {
+      // Create a canvas to generate the testimonial image
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas context not available');
+
+      // Set canvas dimensions
+      canvas.width = 800;
+      canvas.height = 600;
+
+      // Background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Border
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+      // Set font styles
+      ctx.fillStyle = '#374151';
+      ctx.font = '24px Arial, sans-serif';
+      ctx.textAlign = 'center';
+
+      // Title
+      ctx.fillStyle = '#111827';
+      ctx.font = 'bold 32px Arial, sans-serif';
+      ctx.fillText('Testimonial', canvas.width / 2, 80);
+
+      // Survey title
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '18px Arial, sans-serif';
+      ctx.fillText(`From: ${testimonial.survey.title}`, canvas.width / 2, 120);
+
+      // Testimonial text (with word wrapping)
+      ctx.fillStyle = '#374151';
+      ctx.font = '20px Arial, sans-serif';
+      ctx.textAlign = 'left';
+      
+      const maxWidth = canvas.width - 120;
+      const lineHeight = 30;
+      const words = `"${testimonial.testimonial}"`.split(' ');
+      let line = '';
+      let y = 180;
+
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        const testWidth = metrics.width;
+        
+        if (testWidth > maxWidth && n > 0) {
+          ctx.fillText(line, 60, y);
+          line = words[n] + ' ';
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, 60, y);
+
+      // Author name
+      ctx.fillStyle = '#111827';
+      ctx.font = 'bold 22px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`- ${testimonial.name}`, canvas.width / 2, canvas.height - 80);
+
+      // Date
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '16px Arial, sans-serif';
+      const date = new Date(testimonial.created_at).toLocaleDateString();
+      ctx.fillText(date, canvas.width / 2, canvas.height - 50);
+
+      // Convert canvas to blob and download
+      canvas.toBlob((blob) => {
+        if (!blob) throw new Error('Failed to create image');
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `testimonial-${testimonial.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        toast({
+          title: "✅ Testimonial Downloaded!",
+          description: "The testimonial image has been saved to your device.",
+        });
+      }, 'image/png');
+
+    } catch (error) {
+      console.error('Error downloading testimonial:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download testimonial. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const generateIframeCode = (testimonial: Testimonial) => {
+    const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `<iframe src="${currentOrigin}/embed/${testimonial.id}" width="400" height="300" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"></iframe>`;
+  };
+
+  const copyEmbedCode = (testimonial: Testimonial) => {
+    const embedCode = generateIframeCode(testimonial);
+    navigator.clipboard.writeText(embedCode).then(() => {
+      toast({
+        title: "✅ Embed Code Copied!",
+        description: "The iframe embed code has been copied to your clipboard.",
+      });
+    }).catch(() => {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy embed code. Please try again.",
+        variant: "destructive",
+      });
+    });
+  };
+
   const filteredTestimonials = testimonials.filter(
     (testimonial) =>
       testimonial.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       testimonial.testimonial.toLowerCase().includes(searchTerm.toLowerCase()) ||
       testimonial.survey.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const generateEmbedCode = (testimonial: Testimonial) => {
-    return `<div style="max-width: 400px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background: white;">
-  <p style="margin: 0 0 16px 0; color: #374151; line-height: 1.5;">"${testimonial.testimonial}"</p>
-  <div style="display: flex; align-items: center; gap: 8px;">
-    <strong style="color: #111827;">${testimonial.name}</strong>
-  </div>
-</div>`;
-  };
 
   // Calculate stats
   const totalTestimonials = testimonials.length;
@@ -210,6 +324,7 @@ const Testimonials = () => {
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedTestimonial(testimonial)}
+                          title="View Details"
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -242,7 +357,7 @@ const Testimonials = () => {
                     
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" title="Get Embed Code">
                           <Code className="h-4 w-4" />
                         </Button>
                       </DialogTrigger>
@@ -252,15 +367,15 @@ const Testimonials = () => {
                         </DialogHeader>
                         <div className="space-y-4">
                           <p className="text-sm text-gray-600">
-                            Copy this code to embed the testimonial on your website:
+                            Copy this iframe code to embed the testimonial on your website:
                           </p>
                           <div className="bg-gray-50 p-4 rounded-lg">
-                            <code className="text-sm text-gray-800 whitespace-pre-wrap">
-                              {generateEmbedCode(testimonial)}
+                            <code className="text-sm text-gray-800 whitespace-pre-wrap break-all">
+                              {generateIframeCode(testimonial)}
                             </code>
                           </div>
                           <Button
-                            onClick={() => navigator.clipboard.writeText(generateEmbedCode(testimonial))}
+                            onClick={() => copyEmbedCode(testimonial)}
                             className="w-full"
                           >
                             Copy Embed Code
@@ -269,7 +384,12 @@ const Testimonials = () => {
                       </DialogContent>
                     </Dialog>
                     
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      title="Download as Image"
+                      onClick={() => downloadTestimonialAsImage(testimonial)}
+                    >
                       <Download className="h-4 w-4" />
                     </Button>
                     
@@ -277,6 +397,7 @@ const Testimonials = () => {
                       variant="outline" 
                       size="sm" 
                       className="text-red-600 hover:text-red-700"
+                      title="Delete Testimonial"
                       onClick={() => handleDeleteTestimonial(testimonial.id)}
                     >
                       <Trash2 className="h-4 w-4" />
