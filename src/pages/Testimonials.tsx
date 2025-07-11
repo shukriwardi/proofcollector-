@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,49 +7,98 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Eye, Code, Download, Trash2, Search } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
+
+interface Testimonial {
+  id: string;
+  name: string;
+  email: string | null;
+  testimonial: string;
+  created_at: string;
+  survey: {
+    id: string;
+    title: string;
+    question: string;
+  };
+}
 
 const Testimonials = () => {
-  const [testimonials] = useState([
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      email: "sarah@example.com",
-      testimonial: "This service has completely transformed how I manage my business. The customer support is exceptional and the features are exactly what I needed. I would definitely recommend this to anyone looking for a reliable solution.",
-      date: "2024-01-20",
-      linkName: "General Feedback",
-      approved: true
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      email: "michael@example.com",
-      testimonial: "Outstanding product! The interface is intuitive and the results speak for themselves. I've seen a 40% increase in efficiency since implementing this solution.",
-      date: "2024-01-18",
-      linkName: "Product Review",
-      approved: true
-    },
-    {
-      id: 3,
-      name: "Emily Davis",
-      email: "emily@example.com",
-      testimonial: "Great experience working with the team. They were professional, responsive, and delivered exactly what was promised. The onboarding process was smooth and well-structured.",
-      date: "2024-01-15",
-      linkName: "General Feedback",
-      approved: false
-    }
-  ]);
-
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedTestimonial, setSelectedTestimonial] = useState(null);
+  const [selectedTestimonial, setSelectedTestimonial] = useState<Testimonial | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      fetchTestimonials();
+    }
+  }, [user]);
+
+  const fetchTestimonials = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('testimonials')
+        .select(`
+          *,
+          survey:surveys (
+            id,
+            title,
+            question
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setTestimonials(data || []);
+    } catch (error) {
+      console.error('Error fetching testimonials:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load testimonials. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTestimonial = async (testimonialId: string) => {
+    try {
+      const { error } = await supabase
+        .from('testimonials')
+        .delete()
+        .eq('id', testimonialId);
+
+      if (error) throw error;
+
+      setTestimonials(testimonials.filter(t => t.id !== testimonialId));
+      toast({
+        title: "Testimonial Deleted",
+        description: "The testimonial has been deleted successfully.",
+      });
+    } catch (error) {
+      console.error('Error deleting testimonial:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete testimonial. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const filteredTestimonials = testimonials.filter(
     (testimonial) =>
       testimonial.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       testimonial.testimonial.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      testimonial.linkName.toLowerCase().includes(searchTerm.toLowerCase())
+      testimonial.survey.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const generateEmbedCode = (testimonial: any) => {
+  const generateEmbedCode = (testimonial: Testimonial) => {
     return `<div style="max-width: 400px; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background: white;">
   <p style="margin: 0 0 16px 0; color: #374151; line-height: 1.5;">"${testimonial.testimonial}"</p>
   <div style="display: flex; align-items: center; gap: 8px;">
@@ -57,6 +106,23 @@ const Testimonials = () => {
   </div>
 </div>`;
   };
+
+  // Calculate stats
+  const totalTestimonials = testimonials.length;
+  const uniqueSurveys = new Set(testimonials.map(t => t.survey.id)).size;
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading testimonials...</p>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -82,35 +148,23 @@ const Testimonials = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="p-6 bg-white border-0 shadow-sm rounded-xl">
             <div className="text-center">
-              <p className="text-2xl font-bold text-black">{testimonials.length}</p>
+              <p className="text-2xl font-bold text-black">{totalTestimonials}</p>
               <p className="text-sm text-gray-600">Total Testimonials</p>
             </div>
           </Card>
           <Card className="p-6 bg-white border-0 shadow-sm rounded-xl">
             <div className="text-center">
-              <p className="text-2xl font-bold text-green-600">
-                {testimonials.filter(t => t.approved).length}
-              </p>
-              <p className="text-sm text-gray-600">Approved</p>
+              <p className="text-2xl font-bold text-green-600">{totalTestimonials}</p>
+              <p className="text-sm text-gray-600">Published</p>
             </div>
           </Card>
           <Card className="p-6 bg-white border-0 shadow-sm rounded-xl">
             <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-600">
-                {testimonials.filter(t => !t.approved).length}
-              </p>
-              <p className="text-sm text-gray-600">Pending</p>
-            </div>
-          </Card>
-          <Card className="p-6 bg-white border-0 shadow-sm rounded-xl">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-black">
-                {new Set(testimonials.map(t => t.linkName)).size}
-              </p>
-              <p className="text-sm text-gray-600">Sources</p>
+              <p className="text-2xl font-bold text-black">{uniqueSurveys}</p>
+              <p className="text-sm text-gray-600">Survey Sources</p>
             </div>
           </Card>
         </div>
@@ -119,7 +173,9 @@ const Testimonials = () => {
         <div className="space-y-4">
           {filteredTestimonials.length === 0 ? (
             <Card className="p-12 bg-white border-0 shadow-sm rounded-xl text-center">
-              <p className="text-gray-500">No testimonials found matching your search.</p>
+              <p className="text-gray-500">
+                {searchTerm ? "No testimonials found matching your search." : "No testimonials yet. Share your survey links to start collecting testimonials!"}
+              </p>
             </Card>
           ) : (
             filteredTestimonials.map((testimonial) => (
@@ -128,11 +184,11 @@ const Testimonials = () => {
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-3">
                       <h3 className="font-semibold text-black">{testimonial.name}</h3>
-                      <Badge variant={testimonial.approved ? "default" : "secondary"} className="text-xs">
-                        {testimonial.approved ? "Approved" : "Pending"}
+                      <Badge variant="default" className="text-xs">
+                        Published
                       </Badge>
                       <Badge variant="outline" className="text-xs">
-                        {testimonial.linkName}
+                        {testimonial.survey.title}
                       </Badge>
                     </div>
                     
@@ -141,9 +197,9 @@ const Testimonials = () => {
                     </p>
                     
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span>{testimonial.email}</span>
+                      <span>{testimonial.email || "No email provided"}</span>
                       <span>•</span>
-                      <span>{testimonial.date}</span>
+                      <span>{new Date(testimonial.created_at).toLocaleDateString()}</span>
                     </div>
                   </div>
                   
@@ -166,8 +222,18 @@ const Testimonials = () => {
                           <div className="space-y-4">
                             <div>
                               <h3 className="font-semibold text-black mb-2">From: {selectedTestimonial.name}</h3>
-                              <p className="text-sm text-gray-600 mb-4">{selectedTestimonial.email} • {selectedTestimonial.date}</p>
-                              <p className="text-gray-800 leading-relaxed">"{selectedTestimonial.testimonial}"</p>
+                              <p className="text-sm text-gray-600 mb-2">Survey: {selectedTestimonial.survey.title}</p>
+                              <p className="text-sm text-gray-600 mb-4">
+                                {selectedTestimonial.email || "No email provided"} • {new Date(selectedTestimonial.created_at).toLocaleDateString()}
+                              </p>
+                              <div className="mb-4">
+                                <p className="text-sm font-medium text-gray-700 mb-2">Question:</p>
+                                <p className="text-sm text-gray-600 italic">{selectedTestimonial.survey.question}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-700 mb-2">Response:</p>
+                                <p className="text-gray-800 leading-relaxed">"{selectedTestimonial.testimonial}"</p>
+                              </div>
                             </div>
                           </div>
                         )}
@@ -207,7 +273,12 @@ const Testimonials = () => {
                       <Download className="h-4 w-4" />
                     </Button>
                     
-                    <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleDeleteTestimonial(testimonial.id)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>

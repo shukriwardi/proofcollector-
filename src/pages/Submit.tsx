@@ -1,24 +1,97 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { MessageCircle, Star } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+
+interface Survey {
+  id: string;
+  title: string;
+  question: string;
+}
 
 const Submit = () => {
+  const { linkId } = useParams();
+  const [survey, setSurvey] = useState<Survey | null>(null);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     testimonial: ""
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (linkId) {
+      fetchSurvey();
+    } else {
+      setLoading(false);
+    }
+  }, [linkId]);
+
+  const fetchSurvey = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('surveys')
+        .select('id, title, question')
+        .eq('id', linkId)
+        .single();
+
+      if (error) throw error;
+
+      setSurvey(data);
+    } catch (error) {
+      console.error('Error fetching survey:', error);
+      toast({
+        title: "Survey Not Found",
+        description: "The survey you're looking for doesn't exist or has been removed.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Testimonial submitted:", formData);
-    setIsSubmitted(true);
+    
+    if (!survey) return;
+    
+    setSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('testimonials')
+        .insert([
+          {
+            survey_id: survey.id,
+            name: formData.name,
+            email: formData.email || null,
+            testimonial: formData.testimonial
+          }
+        ]);
+
+      if (error) throw error;
+
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting testimonial:', error);
+      toast({
+        title: "Submission Failed",
+        description: "There was an error submitting your testimonial. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -27,6 +100,31 @@ const Submit = () => {
       [e.target.name]: e.target.value
     });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading survey...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!survey && linkId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <Card className="p-12 bg-white border-0 shadow-sm rounded-xl text-center max-w-md w-full">
+          <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-black mb-4">Survey Not Found</h1>
+          <p className="text-gray-600">
+            The survey you're looking for doesn't exist or has been removed.
+          </p>
+        </Card>
+      </div>
+    );
+  }
 
   if (isSubmitted) {
     return (
@@ -58,7 +156,9 @@ const Submit = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <MessageCircle className="h-12 w-12 text-black mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-black mb-2">Share Your Experience</h1>
+          <h1 className="text-3xl font-bold text-black mb-2">
+            {survey?.title || "Share Your Experience"}
+          </h1>
           <p className="text-gray-600">
             We'd love to hear about your experience. Your testimonial helps others learn about our services.
           </p>
@@ -97,7 +197,9 @@ const Submit = () => {
             </div>
 
             <div>
-              <Label htmlFor="testimonial" className="text-black font-medium">Your Testimonial *</Label>
+              <Label htmlFor="testimonial" className="text-black font-medium">
+                {survey?.question || "Your Testimonial"} *
+              </Label>
               <Textarea
                 id="testimonial"
                 name="testimonial"
@@ -127,9 +229,10 @@ const Submit = () => {
 
             <Button 
               type="submit" 
+              disabled={submitting}
               className="w-full bg-black text-white hover:bg-gray-800 rounded-lg py-3 text-lg"
             >
-              Submit Testimonial
+              {submitting ? "Submitting..." : "Submit Testimonial"}
             </Button>
 
             <p className="text-center text-xs text-gray-500">
