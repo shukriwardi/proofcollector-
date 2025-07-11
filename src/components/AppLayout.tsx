@@ -18,6 +18,9 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     initials: "JD"
   });
 
+  // Check if user is logged in (in a real app, this would come from auth context)
+  const isLoggedIn = true; // This would be dynamic in a real app
+
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
     { name: "Testimonials", href: "/testimonials", icon: MessageCircle },
@@ -26,13 +29,16 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  // Determine logo destination based on login status
+  const logoDestination = isLoggedIn ? "/dashboard" : "/";
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation Header */}
-      <nav className="bg-white border-b border-gray-200 px-6 py-4">
+      {/* Fixed Navigation Header */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center space-x-2">
+          <Link to={logoDestination} className="flex items-center space-x-2">
             <MessageCircle className="h-8 w-8 text-black" />
             <span className="text-xl font-semibold text-black">Testimonials</span>
           </Link>
@@ -93,8 +99,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="flex-1 px-6 py-8">
+      {/* Main Content with top padding to account for fixed nav */}
+      <main className="flex-1 px-6 py-8 pt-24">
         <div className="max-w-7xl mx-auto">
           {children}
         </div>

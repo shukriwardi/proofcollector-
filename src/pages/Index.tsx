@@ -7,12 +7,12 @@ import { Link as RouterLink } from "react-router-dom";
 const Index = () => {
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-        <div className="flex items-center space-x-2">
+      {/* Fixed Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
+        <RouterLink to="/" className="flex items-center space-x-2">
           <MessageCircle className="h-8 w-8 text-black" />
           <span className="text-xl font-semibold text-black">Testimonials</span>
-        </div>
+        </RouterLink>
         <div className="flex items-center space-x-4">
           <RouterLink to="/login">
             <Button variant="ghost" className="text-black hover:bg-gray-50 rounded-full px-6">
@@ -27,8 +27,8 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="px-6 py-20 text-center max-w-4xl mx-auto">
+      {/* Hero Section with top padding for fixed nav */}
+      <section className="px-6 py-20 pt-32 text-center max-w-4xl mx-auto">
         <h1 className="text-5xl font-bold text-black mb-6 animate-fade-in">
           Collect powerful testimonials
           <span className="block text-gray-600">effortlessly</span>
@@ -38,7 +38,7 @@ const Index = () => {
           collect feedback, and showcase social proof that converts.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
-          <RouterLink to="/signup">
+          <RouterLink to="/login">
             <Button className="bg-black text-white hover:bg-gray-800 rounded-full px-8 py-3 text-lg">
               Get Started Free
             </Button>
@@ -150,7 +150,7 @@ const Index = () => {
         <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
           Join hundreds of businesses already using our platform to build trust and grow faster.
         </p>
-        <RouterLink to="/signup">
+        <RouterLink to="/login">
           <Button className="bg-white text-black hover:bg-gray-100 rounded-full px-8 py-3 text-lg">
             Get Started Free
           </Button>
