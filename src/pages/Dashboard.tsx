@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Plus, Link2, MessageCircle, Eye, Copy, ExternalLink } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
+import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
   const [testimonialLinks, setTestimonialLinks] = useState([
@@ -30,6 +31,7 @@ const Dashboard = () => {
 
   const [newLinkName, setNewLinkName] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const { toast } = useToast();
 
   const handleCreateLink = () => {
     if (newLinkName.trim()) {
@@ -44,12 +46,42 @@ const Dashboard = () => {
       setTestimonialLinks([...testimonialLinks, newLink]);
       setNewLinkName("");
       setIsCreateDialogOpen(false);
+      toast({
+        title: "Link Created",
+        description: "Your testimonial collection link has been created successfully.",
+      });
     }
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    console.log("Copied to clipboard:", text);
+    navigator.clipboard.writeText(text).then(() => {
+      toast({
+        title: "Copied to clipboard",
+        description: "The testimonial link has been copied to your clipboard.",
+      });
+    }).catch(() => {
+      toast({
+        title: "Failed to copy",
+        description: "Unable to copy the link. Please try again.",
+        variant: "destructive",
+      });
+    });
+  };
+
+  const shareLink = (url: string, linkName: string) => {
+    if (navigator.share) {
+      navigator.share({
+        title: `${linkName} - Testimonial Collection`,
+        text: `Please share your testimonial using this link:`,
+        url: url,
+      }).catch(() => {
+        // Fallback to copy if share fails
+        copyToClipboard(url);
+      });
+    } else {
+      // Fallback to copy if Web Share API is not available
+      copyToClipboard(url);
+    }
   };
 
   return (
@@ -72,6 +104,9 @@ const Dashboard = () => {
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Create Testimonial Link</DialogTitle>
+                <DialogDescription>
+                  Create a new link to collect testimonials from your customers.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
@@ -181,16 +216,20 @@ const Dashboard = () => {
                           size="sm"
                           onClick={() => copyToClipboard(link.url)}
                           className="rounded-lg"
+                          title="Copy link"
                         >
                           <Copy className="h-4 w-4" />
+                          <span className="sr-only">Copy</span>
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(link.url, '_blank')}
+                          onClick={() => shareLink(link.url, link.name)}
                           className="rounded-lg"
+                          title="Share link"
                         >
                           <ExternalLink className="h-4 w-4" />
+                          <span className="sr-only">Share</span>
                         </Button>
                       </div>
                     </div>

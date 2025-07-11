@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Submit from "./pages/Submit";
 import Testimonials from "./pages/Testimonials";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ const AppRoutes = () => (
     <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
+    <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="/submit" element={<Submit />} />
     <Route path="/submit/:linkId" element={<Submit />} />
     <Route path="*" element={<NotFound />} />
