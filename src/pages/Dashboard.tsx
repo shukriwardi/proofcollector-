@@ -110,7 +110,9 @@ const Dashboard = () => {
   };
 
   const generateSurveyUrl = (surveyId: string) => {
-    return `${window.location.origin}/submit/${surveyId}`;
+    // Use the current window location to generate the correct URL
+    const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${currentOrigin}/submit/${surveyId}`;
   };
 
   const copyToClipboard = (text: string) => {
