@@ -40,7 +40,7 @@ const Index = () => {
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
           <RouterLink to="/login">
             <Button className="bg-black text-white hover:bg-gray-800 rounded-full px-8 py-3 text-lg">
-              Get Started Free
+              Sign in
             </Button>
           </RouterLink>
           <RouterLink to="/login">
@@ -152,7 +152,7 @@ const Index = () => {
         </p>
         <RouterLink to="/login">
           <Button className="bg-white text-black hover:bg-gray-100 rounded-full px-8 py-3 text-lg">
-            Get Started Free
+            Sign in
           </Button>
         </RouterLink>
       </section>
