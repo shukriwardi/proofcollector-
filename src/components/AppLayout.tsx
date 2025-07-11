@@ -1,10 +1,13 @@
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MessageCircle, Settings, LogOut, BarChart3, CreditCard } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -12,14 +15,29 @@ interface AppLayoutProps {
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
   const location = useLocation();
-  const [user] = useState({
-    name: "John Doe",
-    email: "john@example.com",
-    initials: "JD"
-  });
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  const [profile, setProfile] = useState<{ username: string } | null>(null);
 
-  // Check if user is logged in (in a real app, this would come from auth context)
-  const isLoggedIn = true; // This would be dynamic in a real app
+  useEffect(() => {
+    if (user) {
+      // Fetch user profile to get username
+      const fetchProfile = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+        
+        if (data && !error) {
+          setProfile(data);
+        }
+      };
+      
+      fetchProfile();
+    }
+  }, [user]);
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
@@ -29,8 +47,33 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Determine logo destination based on login status
-  const logoDestination = isLoggedIn ? "/dashboard" : "/";
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out",
+        description: "You have been signed out successfully.",
+      });
+      navigate("/");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (profile?.username) {
+      return profile.username.substring(0, 2).toUpperCase();
+    }
+    if (user?.email) {
+      return user.email.substring(0, 2).toUpperCase();
+    }
+    return "U";
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -38,7 +81,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to={logoDestination} className="flex items-center space-x-2">
+          <Link to="/dashboard" className="flex items-center space-x-2">
             <MessageCircle className="h-8 w-8 text-black" />
             <span className="text-xl font-semibold text-black">Testimonials</span>
           </Link>
@@ -70,7 +113,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback className="bg-black text-white">
-                    {user.initials}
+                    {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -78,8 +121,10 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <div className="flex items-center justify-start gap-2 p-2">
                 <div className="flex flex-col space-y-1 leading-none">
-                  <p className="font-medium text-black">{user.name}</p>
-                  <p className="text-xs text-gray-600">{user.email}</p>
+                  <p className="font-medium text-black">
+                    {profile?.username || "User"}
+                  </p>
+                  <p className="text-xs text-gray-600">{user?.email}</p>
                 </div>
               </div>
               <DropdownMenuSeparator />
@@ -90,7 +135,10 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600 focus:text-red-600">
+              <DropdownMenuItem 
+                className="text-red-600 focus:text-red-600 cursor-pointer"
+                onClick={handleSignOut}
+              >
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
               </DropdownMenuItem>

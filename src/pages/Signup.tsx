@@ -5,19 +5,64 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { MessageCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
-    name: "",
+    username: "",
     email: "",
     password: ""
   });
+  const [loading, setLoading] = useState(false);
+  const { signUp } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Signup form submitted:", formData);
-    // Handle signup logic here
+    setLoading(true);
+
+    try {
+      const { error } = await signUp(formData.email, formData.password, formData.username);
+      
+      if (error) {
+        if (error.message.includes('already registered')) {
+          toast({
+            title: "Account exists",
+            description: "An account with this email already exists. Please sign in instead.",
+            variant: "destructive",
+          });
+        } else if (error.message.includes('username')) {
+          toast({
+            title: "Username taken",
+            description: "This username is already taken. Please choose another one.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Success!",
+          description: "Account created successfully. Please check your email to verify your account.",
+        });
+        navigate("/login");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -46,16 +91,17 @@ const Signup = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="name" className="text-black font-medium">Full Name</Label>
+              <Label htmlFor="username" className="text-black font-medium">Username</Label>
               <Input
-                id="name"
-                name="name"
+                id="username"
+                name="username"
                 type="text"
-                value={formData.name}
+                value={formData.username}
                 onChange={handleChange}
                 className="mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black"
-                placeholder="Enter your full name"
+                placeholder="Choose a username"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -70,6 +116,7 @@ const Signup = () => {
                 className="mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black"
                 placeholder="Enter your email"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -84,14 +131,16 @@ const Signup = () => {
                 className="mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black"
                 placeholder="Create a password"
                 required
+                disabled={loading}
               />
             </div>
 
             <Button 
               type="submit" 
               className="w-full bg-black text-white hover:bg-gray-800 rounded-lg py-3"
+              disabled={loading}
             >
-              Create Account
+              {loading ? "Creating Account..." : "Create Account"}
             </Button>
 
             <div className="text-center">
