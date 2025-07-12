@@ -38,7 +38,7 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
         </DialogHeader>
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Copy this iframe code to embed the testimonial on your website:
+            Copy this iframe code to embed the proof on your website:
           </p>
           <div className="bg-gray-50 p-4 rounded-lg">
             <code className="text-sm text-gray-800 whitespace-pre-wrap break-all">

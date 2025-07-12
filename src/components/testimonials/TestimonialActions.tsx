@@ -63,7 +63,7 @@ export const TestimonialActions = ({
         variant="outline" 
         size="sm" 
         className="text-red-600 hover:text-red-700"
-        title="Delete Testimonial"
+        title="Delete Proof"
         onClick={() => onDelete(testimonial.id)}
       >
         <Trash2 className="h-4 w-4" />

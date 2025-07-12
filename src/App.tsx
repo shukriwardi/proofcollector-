@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,6 +8,7 @@ import Index from "./pages/Index";
 import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Submit from "./pages/Submit";
 import Testimonials from "./pages/Testimonials";
@@ -51,6 +51,7 @@ const AppRoutes = () => (
     <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
     <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
     <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+    <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />

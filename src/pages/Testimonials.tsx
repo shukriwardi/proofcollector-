@@ -57,10 +57,10 @@ const Testimonials = () => {
 
       setTestimonials(data || []);
     } catch (error) {
-      console.error('Error fetching testimonials:', error);
+      console.error('Error fetching ProofCollector data:', error);
       toast({
         title: "Error",
-        description: "Failed to load testimonials. Please try again.",
+        description: "Failed to load ProofCollector data. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -79,14 +79,14 @@ const Testimonials = () => {
 
       setTestimonials(testimonials.filter(t => t.id !== testimonialId));
       toast({
-        title: "Testimonial Deleted",
-        description: "The testimonial has been deleted successfully.",
+        title: "Proof Deleted",
+        description: "The proof has been deleted successfully.",
       });
     } catch (error) {
-      console.error('Error deleting testimonial:', error);
+      console.error('Error deleting proof:', error);
       toast({
         title: "Error",
-        description: "Failed to delete testimonial. Please try again.",
+        description: "Failed to delete proof. Please try again.",
         variant: "destructive",
       });
     }
@@ -114,7 +114,7 @@ const Testimonials = () => {
 
       ctx.fillStyle = '#111827';
       ctx.font = 'bold 32px Arial, sans-serif';
-      ctx.fillText('Testimonial', canvas.width / 2, 80);
+      ctx.fillText('Social Proof', canvas.width / 2, 80);
 
       ctx.fillStyle = '#6b7280';
       ctx.font = '18px Arial, sans-serif';
@@ -161,23 +161,23 @@ const Testimonials = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `testimonial-${testimonial.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+        a.download = `proof-${testimonial.name.replace(/\s+/g, '-').toLowerCase()}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
         toast({
-          title: "✅ Testimonial Downloaded!",
-          description: "The testimonial image has been saved to your device.",
+          title: "✅ Proof Downloaded!",
+          description: "The proof image has been saved to your device.",
         });
       }, 'image/png');
 
     } catch (error) {
-      console.error('Error downloading testimonial:', error);
+      console.error('Error downloading proof:', error);
       toast({
         title: "Download Failed",
-        description: "Failed to download testimonial. Please try again.",
+        description: "Failed to download proof. Please try again.",
         variant: "destructive",
       });
     }
@@ -260,7 +260,7 @@ const Testimonials = () => {
           {filteredTestimonials.length === 0 ? (
             <Card className="p-12 bg-white border-0 shadow-sm rounded-xl text-center">
               <p className="text-gray-500">
-                {searchTerm ? "No proof found matching your search." : "No social proof yet. Share your survey links to start collecting testimonials!"}
+                {searchTerm ? "No proof found matching your search." : "No social proof yet. Share your survey links to start collecting proof!"}
               </p>
             </Card>
           ) : (
