@@ -6,7 +6,7 @@ import { Link as RouterLink } from "react-router-dom";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white font-inter">
       {/* Fixed Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
         <RouterLink to="/" className="flex items-center space-x-2">
@@ -29,23 +29,18 @@ const Index = () => {
 
       {/* Hero Section with top padding for fixed nav */}
       <section className="px-6 py-20 pt-32 text-center max-w-4xl mx-auto">
-        <h1 className="text-5xl font-bold text-black mb-6 animate-fade-in">
+        <h1 className="text-6xl font-bold text-black mb-6 leading-tight">
           Collect powerful testimonials
           <span className="block text-gray-600">effortlessly</span>
         </h1>
-        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto animate-fade-in">
+        <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
           Help your business grow with authentic client testimonials. Create request links, 
           collect feedback, and showcase social proof that converts.
         </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in">
-          <RouterLink to="/login">
-            <Button className="bg-black text-white hover:bg-gray-800 rounded-full px-8 py-3 text-lg">
-              Sign in
-            </Button>
-          </RouterLink>
-          <RouterLink to="/login">
-            <Button variant="outline" className="border-gray-300 text-black hover:bg-gray-50 rounded-full px-8 py-3 text-lg">
-              See Demo
+        <div className="flex justify-center">
+          <RouterLink to="/signup">
+            <Button className="bg-black text-white hover:bg-gray-800 rounded-xl px-10 py-4 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+              Get Started
             </Button>
           </RouterLink>
         </div>
@@ -150,9 +145,9 @@ const Index = () => {
         <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
           Join hundreds of businesses already using our platform to build trust and grow faster.
         </p>
-        <RouterLink to="/login">
-          <Button className="bg-white text-black hover:bg-gray-100 rounded-full px-8 py-3 text-lg">
-            Sign in
+        <RouterLink to="/signup">
+          <Button className="bg-white text-black hover:bg-gray-100 rounded-xl px-10 py-4 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+            Get Started
           </Button>
         </RouterLink>
       </section>
