@@ -27,8 +27,10 @@ const ResetPassword = () => {
         const refreshToken = searchParams.get('refresh_token');
         const type = searchParams.get('type');
         
+        console.log('Reset password params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+        
         if (accessToken && refreshToken && type === 'recovery') {
-          // Set the session with the tokens from the URL
+          // Set the session with the tokens from the URL but don't redirect yet
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
@@ -47,7 +49,7 @@ const ResetPassword = () => {
           
           if (data.session) {
             setIsValidSession(true);
-            console.log('Valid reset session established');
+            console.log('Valid reset session established, user must set new password');
           }
         } else {
           // No reset tokens, redirect to forgot password
@@ -180,9 +182,9 @@ const ResetPassword = () => {
 
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Set your new password</CardTitle>
+            <CardTitle className="text-2xl text-center">Set Your New Password</CardTitle>
             <CardDescription className="text-center">
-              Enter your new password below to complete the reset process
+              Please enter your new password to complete the reset process
             </CardDescription>
           </CardHeader>
 
@@ -217,8 +219,6 @@ const ResetPassword = () => {
               <div className="text-sm text-gray-600">
                 <p>Password must be at least 8 characters long.</p>
               </div>
-            </CardContent>
-            <CardContent>
               <Button 
                 type="submit" 
                 className="w-full" 
