@@ -7,63 +7,72 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/components/ui/use-toast";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { MessageCircle } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const ResetPassword = () => {
-  const [step, setStep] = useState<'verify' | 'reset'>('verify');
-  const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState("");
+  const [isValidSession, setIsValidSession] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { updatePassword } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have tokens from email link
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    const type = searchParams.get('type');
-    
-    if (accessToken && refreshToken && type === 'recovery') {
-      // User clicked email link, skip to password reset
-      setStep('reset');
-    }
-  }, [searchParams]);
+    const checkResetSession = async () => {
+      try {
+        // Check if we have tokens from email link
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
+        const type = searchParams.get('type');
+        
+        if (accessToken && refreshToken && type === 'recovery') {
+          // Set the session with the tokens from the URL
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            console.error('Session error:', error);
+            toast({
+              title: "Invalid reset link",
+              description: "This password reset link is invalid or has expired. Please request a new one.",
+              variant: "destructive",
+            });
+            navigate('/forgot-password');
+            return;
+          }
+          
+          if (data.session) {
+            setIsValidSession(true);
+            console.log('Valid reset session established');
+          }
+        } else {
+          // No reset tokens, redirect to forgot password
+          toast({
+            title: "Access denied",
+            description: "Please use the password reset link from your email.",
+            variant: "destructive",
+          });
+          navigate('/forgot-password');
+        }
+      } catch (error) {
+        console.error('Error checking reset session:', error);
+        toast({
+          title: "Error",
+          description: "An error occurred. Please try again.",
+          variant: "destructive",
+        });
+        navigate('/forgot-password');
+      } finally {
+        setCheckingSession(false);
+      }
+    };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!otp || otp.length !== 6) {
-      toast({
-        title: "Invalid code",
-        description: "Please enter the 6-digit code from your email.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // This would verify the OTP and proceed to password reset
-      // For now, we'll simulate success and move to reset step
-      setStep('reset');
-      toast({
-        title: "Code verified",
-        description: "Please enter your new password.",
-      });
-    } catch (error) {
-      toast({
-        title: "Invalid code",
-        description: "The code you entered is invalid or has expired.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    checkResetSession();
+  }, [searchParams, navigate, toast]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,22 +98,32 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      const { error } = await updatePassword(password);
+      console.log('Attempting to update password...');
+      
+      const { data, error } = await supabase.auth.updateUser({
+        password: password
+      });
 
       if (error) {
+        console.error('Password update error:', error);
         toast({
-          title: "Error",
+          title: "Error updating password",
           description: error.message,
           variant: "destructive",
         });
       } else {
+        console.log('Password updated successfully:', data);
         toast({
-          title: "Password updated",
-          description: "Your password has been successfully updated.",
+          title: "Password updated successfully",
+          description: "Your password has been changed. You can now log in with your new password.",
         });
-        navigate("/dashboard");
+        
+        // Sign out the user so they have to log in with their new password
+        await supabase.auth.signOut();
+        navigate("/login");
       }
     } catch (error: any) {
+      console.error('Unexpected error:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred. Please try again.",
@@ -114,6 +133,39 @@ const ResetPassword = () => {
       setLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
+          <p>Verifying reset link...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isValidSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-center text-red-600">Invalid Reset Link</CardTitle>
+              <CardDescription className="text-center">
+                This password reset link is invalid or has expired.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link to="/forgot-password">
+                <Button className="w-full">Request New Reset Link</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -128,90 +180,54 @@ const ResetPassword = () => {
 
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">
-              {step === 'verify' ? 'Enter verification code' : 'Reset your password'}
-            </CardTitle>
+            <CardTitle className="text-2xl text-center">Set your new password</CardTitle>
             <CardDescription className="text-center">
-              {step === 'verify' 
-                ? 'Enter the 6-digit code sent to your email'
-                : 'Enter your new password below'
-              }
+              Enter your new password below to complete the reset process
             </CardDescription>
           </CardHeader>
 
-          {step === 'verify' ? (
-            <form onSubmit={handleVerifyOtp}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="otp">Verification Code</Label>
-                  <Input
-                    id="otp"
-                    name="otp"
-                    type="text"
-                    required
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    placeholder="Enter 6-digit code"
-                    maxLength={6}
-                    className="text-center text-lg tracking-widest"
-                  />
-                </div>
-                <div className="text-sm text-gray-600 text-center">
-                  <p>Check your email for the verification code.</p>
-                  <p className="mt-1">If you don't see it, check your spam folder.</p>
-                </div>
-              </CardContent>
-              <CardContent>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={loading}
-                >
-                  {loading ? "Verifying..." : "Verify Code"}
-                </Button>
-              </CardContent>
-            </form>
-          ) : (
-            <form onSubmit={handleResetPassword}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">New Password</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your new password"
-                    minLength={8}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your new password"
-                    minLength={8}
-                  />
-                </div>
-              </CardContent>
-              <CardContent>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={loading}
-                >
-                  {loading ? "Updating..." : "Update Password"}
-                </Button>
-              </CardContent>
-            </form>
-          )}
+          <form onSubmit={handleResetPassword}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">New Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your new password"
+                  minLength={8}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your new password"
+                  minLength={8}
+                />
+              </div>
+              <div className="text-sm text-gray-600">
+                <p>Password must be at least 8 characters long.</p>
+              </div>
+            </CardContent>
+            <CardContent>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={loading}
+              >
+                {loading ? "Updating Password..." : "Update Password"}
+              </Button>
+            </CardContent>
+          </form>
 
           <CardContent className="pt-0">
             <div className="text-center">
