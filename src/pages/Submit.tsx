@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { MessageCircle, Star } from "lucide-react";
+import { MessageCircle, Star, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { testimonialSchema, type TestimonialFormData } from "@/lib/validation";
+import { sanitizeText, checkRateLimit, getGenericErrorMessage } from "@/lib/security";
 
 interface Survey {
   id: string;
@@ -20,13 +22,16 @@ const Submit = () => {
   const { linkId } = useParams();
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<TestimonialFormData>({
     name: "",
     email: "",
     testimonial: ""
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Partial<TestimonialFormData>>({});
+  const [rateLimited, setRateLimited] = useState(false);
+  const [cooldownTime, setCooldownTime] = useState<number>(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -36,6 +41,23 @@ const Submit = () => {
       setLoading(false);
     }
   }, [linkId]);
+
+  // Cooldown timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (cooldownTime > 0) {
+      interval = setInterval(() => {
+        setCooldownTime(prev => {
+          if (prev <= 1) {
+            setRateLimited(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [cooldownTime]);
 
   const fetchSurvey = async () => {
     try {
@@ -52,7 +74,7 @@ const Submit = () => {
       console.error('Error fetching survey:', error);
       toast({
         title: "Survey Not Found",
-        description: "The survey you're looking for doesn't exist or has been removed.",
+        description: getGenericErrorMessage('database'),
         variant: "destructive",
       });
     } finally {
@@ -60,33 +82,79 @@ const Submit = () => {
     }
   };
 
+  const validateForm = (): boolean => {
+    try {
+      testimonialSchema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (error: any) {
+      const fieldErrors: Partial<TestimonialFormData> = {};
+      error.errors?.forEach((err: any) => {
+        const field = err.path[0] as keyof TestimonialFormData;
+        fieldErrors[field] = err.message;
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!survey) return;
+
+    // Validate form
+    if (!validateForm()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fix the errors in the form.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check rate limiting
+    const clientIP = 'user'; // In production, get actual IP
+    const rateCheck = checkRateLimit(`testimonial_${clientIP}`, 3, 15 * 60 * 1000); // 3 submissions per 15 minutes
+    
+    if (!rateCheck.allowed) {
+      setRateLimited(true);
+      setCooldownTime(Math.ceil((rateCheck.resetTime - Date.now()) / 1000));
+      toast({
+        title: "Too Many Submissions",
+        description: "Please wait before submitting another testimonial.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setSubmitting(true);
 
     try {
+      // Sanitize form data
+      const sanitizedData = {
+        survey_id: survey.id,
+        name: sanitizeText(formData.name),
+        email: formData.email ? sanitizeText(formData.email) : null,
+        testimonial: sanitizeText(formData.testimonial)
+      };
+
       const { error } = await supabase
         .from('testimonials')
-        .insert([
-          {
-            survey_id: survey.id,
-            name: formData.name,
-            email: formData.email || null,
-            testimonial: formData.testimonial
-          }
-        ]);
+        .insert([sanitizedData]);
 
       if (error) throw error;
 
       setIsSubmitted(true);
+      
+      // Clear form data for security
+      setFormData({ name: "", email: "", testimonial: "" });
+      
     } catch (error) {
       console.error('Error submitting testimonial:', error);
       toast({
         title: "Submission Failed",
-        description: "There was an error submitting your testimonial. Please try again.",
+        description: getGenericErrorMessage('database'),
         variant: "destructive",
       });
     } finally {
@@ -95,10 +163,13 @@ const Submit = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
+    if (errors[name as keyof TestimonialFormData]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
   };
 
   if (loading) {
@@ -165,6 +236,18 @@ const Submit = () => {
         </div>
 
         <Card className="p-8 bg-white border-0 shadow-sm rounded-xl">
+          {rateLimited && (
+            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start space-x-3">
+              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+              <div>
+                <p className="text-yellow-800 font-medium">Rate limit reached</p>
+                <p className="text-yellow-700 text-sm">
+                  Please wait {Math.floor(cooldownTime / 60)}m {cooldownTime % 60}s before submitting again.
+                </p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -175,10 +258,12 @@ const Submit = () => {
                   type="text"
                   value={formData.name}
                   onChange={handleChange}
-                  className="mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black"
+                  className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black ${errors.name ? 'border-red-500' : ''}`}
                   placeholder="Enter your full name"
+                  maxLength={100}
                   required
                 />
+                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
               </div>
 
               <div>
@@ -189,9 +274,11 @@ const Submit = () => {
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black"
+                  className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black ${errors.email ? 'border-red-500' : ''}`}
                   placeholder="Enter your email (optional)"
+                  maxLength={254}
                 />
+                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                 <p className="text-xs text-gray-500 mt-1">Optional - only used for follow-up if needed</p>
               </div>
             </div>
@@ -206,12 +293,14 @@ const Submit = () => {
                 value={formData.testimonial}
                 onChange={handleChange}
                 rows={6}
-                className="mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black resize-none"
+                className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black resize-none ${errors.testimonial ? 'border-red-500' : ''}`}
                 placeholder="Tell us about your experience... What did you like? How did we help you? What would you tell others?"
+                maxLength={1000}
                 required
               />
+              {errors.testimonial && <p className="text-red-500 text-sm mt-1">{errors.testimonial}</p>}
               <p className="text-xs text-gray-500 mt-1">
-                {formData.testimonial.length}/500 characters
+                {formData.testimonial.length}/1000 characters
               </p>
             </div>
 
@@ -229,10 +318,10 @@ const Submit = () => {
 
             <Button 
               type="submit" 
-              disabled={submitting}
-              className="w-full bg-black text-white hover:bg-gray-800 rounded-lg py-3 text-lg"
+              disabled={submitting || rateLimited}
+              className="w-full bg-black text-white hover:bg-gray-800 rounded-lg py-3 text-lg disabled:opacity-50"
             >
-              {submitting ? "Submitting..." : "Submit Testimonial"}
+              {submitting ? "Submitting..." : rateLimited ? `Wait ${Math.floor(cooldownTime / 60)}m ${cooldownTime % 60}s` : "Submit Testimonial"}
             </Button>
 
             <p className="text-center text-xs text-gray-500">

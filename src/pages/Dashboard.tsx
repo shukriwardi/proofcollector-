@@ -6,11 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Link2, MessageCircle, Eye, Copy, ExternalLink } from "lucide-react";
+import { Plus, Link2, MessageCircle, Eye, Copy, ExternalLink, AlertTriangle } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { surveySchema, type SurveyFormData } from "@/lib/validation";
+import { sanitizeText, checkRateLimit, getGenericErrorMessage } from "@/lib/security";
 
 interface Survey {
   id: string;
@@ -22,10 +24,14 @@ interface Survey {
 
 const Dashboard = () => {
   const [surveys, setSurveys] = useState<Survey[]>([]);
-  const [newSurveyTitle, setNewSurveyTitle] = useState("");
-  const [newSurveyQuestion, setNewSurveyQuestion] = useState("");
+  const [formData, setFormData] = useState<SurveyFormData>({
+    title: "",
+    question: ""
+  });
+  const [errors, setErrors] = useState<Partial<SurveyFormData>>({});
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [rateLimited, setRateLimited] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -57,7 +63,7 @@ const Dashboard = () => {
       console.error('Error fetching surveys:', error);
       toast({
         title: "Error",
-        description: "Failed to load surveys. Please try again.",
+        description: getGenericErrorMessage('database'),
         variant: "destructive",
       });
     } finally {
@@ -65,34 +71,63 @@ const Dashboard = () => {
     }
   };
 
+  const validateForm = (): boolean => {
+    try {
+      surveySchema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (error: any) {
+      const fieldErrors: Partial<SurveyFormData> = {};
+      error.errors?.forEach((err: any) => {
+        const field = err.path[0] as keyof SurveyFormData;
+        fieldErrors[field] = err.message;
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+  };
+
   const handleCreateSurvey = async () => {
-    if (!newSurveyTitle.trim() || !newSurveyQuestion.trim()) {
+    if (!validateForm()) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in both the survey title and question.",
+        title: "Validation Error",
+        description: "Please fix the errors in the form.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Rate limiting for survey creation
+    const rateCheck = checkRateLimit(`survey_creation_${user?.id}`, 10, 60 * 60 * 1000); // 10 surveys per hour
+    
+    if (!rateCheck.allowed) {
+      setRateLimited(true);
+      toast({
+        title: "Rate Limit Exceeded",
+        description: "You can create a maximum of 10 surveys per hour.",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      // Sanitize form data
+      const sanitizedData = {
+        title: sanitizeText(formData.title),
+        question: sanitizeText(formData.question),
+        user_id: user?.id
+      };
+
       const { data, error } = await supabase
         .from('surveys')
-        .insert([
-          {
-            title: newSurveyTitle,
-            question: newSurveyQuestion,
-            user_id: user?.id
-          }
-        ])
+        .insert([sanitizedData])
         .select()
         .single();
 
       if (error) throw error;
 
       setSurveys([{ ...data, testimonial_count: 0 }, ...surveys]);
-      setNewSurveyTitle("");
-      setNewSurveyQuestion("");
+      setFormData({ title: "", question: "" });
       setIsCreateDialogOpen(false);
       
       toast({
@@ -103,14 +138,23 @@ const Dashboard = () => {
       console.error('Error creating survey:', error);
       toast({
         title: "Error",
-        description: "Failed to create survey. Please try again.",
+        description: getGenericErrorMessage('database'),
         variant: "destructive",
       });
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
+    if (errors[name as keyof SurveyFormData]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
   const generateSurveyUrl = (surveyId: string) => {
-    // Use the current window location to generate the correct URL
     const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
     return `${currentOrigin}/submit/${surveyId}`;
   };
@@ -124,7 +168,7 @@ const Dashboard = () => {
     }).catch(() => {
       toast({
         title: "Failed to copy",
-        description: "Unable to copy the link. Please try again.",
+        description: getGenericErrorMessage('form'),
         variant: "destructive",
       });
     });
@@ -171,7 +215,7 @@ const Dashboard = () => {
           
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-black text-white hover:bg-gray-800 rounded-full px-6">
+              <Button className="bg-black text-white hover:bg-gray-800 rounded-full px-6" disabled={rateLimited}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Survey
               </Button>
@@ -183,33 +227,54 @@ const Dashboard = () => {
                   Create a new survey to collect testimonials from your customers.
                 </DialogDescription>
               </DialogHeader>
+              
+              {rateLimited && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start space-x-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                  <div>
+                    <p className="text-yellow-800 font-medium">Rate limit reached</p>
+                    <p className="text-yellow-700 text-sm">You can create a maximum of 10 surveys per hour.</p>
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="surveyTitle">Survey Title</Label>
                   <Input
                     id="surveyTitle"
-                    value={newSurveyTitle}
-                    onChange={(e) => setNewSurveyTitle(e.target.value)}
+                    name="title"
+                    value={formData.title}
+                    onChange={handleChange}
                     placeholder="e.g., General Feedback, Product Review"
-                    className="mt-2"
+                    className={`mt-2 ${errors.title ? 'border-red-500' : ''}`}
+                    maxLength={200}
                   />
+                  {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
                 </div>
                 <div>
                   <Label htmlFor="surveyQuestion">Survey Question</Label>
                   <Textarea
                     id="surveyQuestion"
-                    value={newSurveyQuestion}
-                    onChange={(e) => setNewSurveyQuestion(e.target.value)}
+                    name="question"
+                    value={formData.question}
+                    onChange={handleChange}
                     placeholder="e.g., What did you love about our service?"
-                    className="mt-2"
+                    className={`mt-2 ${errors.question ? 'border-red-500' : ''}`}
                     rows={3}
+                    maxLength={500}
                   />
+                  {errors.question && <p className="text-red-500 text-sm mt-1">{errors.question}</p>}
                 </div>
                 <div className="flex justify-end space-x-2">
                   <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateSurvey} className="bg-black text-white hover:bg-gray-800">
+                  <Button 
+                    onClick={handleCreateSurvey} 
+                    className="bg-black text-white hover:bg-gray-800"
+                    disabled={rateLimited}
+                  >
                     Create Survey
                   </Button>
                 </div>

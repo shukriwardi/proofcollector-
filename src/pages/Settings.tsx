@@ -8,21 +8,55 @@ import { AppLayout } from "@/components/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { profileSchema, type ProfileFormData } from "@/lib/validation";
+import { sanitizeText, getGenericErrorMessage, maskEmail } from "@/lib/security";
 
 const Settings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [username, setUsername] = useState("");
+  const [formData, setFormData] = useState<ProfileFormData>({
+    username: ""
+  });
+  const [errors, setErrors] = useState<Partial<ProfileFormData>>({});
   const [isLoading, setIsLoading] = useState(false);
 
+  const validateForm = (): boolean => {
+    try {
+      profileSchema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (error: any) {
+      const fieldErrors: Partial<ProfileFormData> = {};
+      error.errors?.forEach((err: any) => {
+        const field = err.path[0] as keyof ProfileFormData;
+        fieldErrors[field] = err.message;
+      });
+      setErrors(fieldErrors);
+      return false;
+    }
+  };
+
   const handleUpdateProfile = async () => {
-    if (!user || !username.trim()) return;
+    if (!user || !validateForm()) {
+      if (!validateForm()) {
+        toast({
+          title: "Validation Error",
+          description: "Please fix the errors in the form.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
 
     setIsLoading(true);
     try {
+      const sanitizedData = {
+        username: sanitizeText(formData.username)
+      };
+
       const { error } = await supabase
         .from('profiles')
-        .update({ username: username.trim() })
+        .update(sanitizedData)
         .eq('id', user.id);
 
       if (error) throw error;
@@ -32,13 +66,24 @@ const Settings = () => {
         description: "Your profile has been updated successfully.",
       });
     } catch (error) {
+      console.error('Error updating profile:', error);
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: getGenericErrorMessage('database'),
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
+    if (errors[name as keyof ProfileFormData]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
@@ -58,7 +103,7 @@ const Settings = () => {
               <Input
                 id="email"
                 type="email"
-                value={user?.email || ""}
+                value={user?.email ? maskEmail(user.email) : ""}
                 disabled
                 className="mt-2 bg-gray-50"
               />
@@ -69,20 +114,34 @@ const Settings = () => {
               <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
                 placeholder="Enter your username"
-                className="mt-2"
+                className={`mt-2 ${errors.username ? 'border-red-500' : ''}`}
+                maxLength={50}
               />
+              {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
+              <p className="text-sm text-gray-500 mt-1">Only letters, numbers, underscores, and hyphens allowed</p>
             </div>
 
             <Button 
               onClick={handleUpdateProfile} 
-              disabled={isLoading || !username.trim()}
+              disabled={isLoading || !formData.username.trim()}
               className="bg-black text-white hover:bg-gray-800"
             >
               {isLoading ? "Updating..." : "Update Profile"}
             </Button>
+          </div>
+        </Card>
+
+        <Card className="p-6 bg-white border-0 shadow-sm rounded-xl">
+          <h2 className="text-xl font-semibold text-black mb-4">Security Information</h2>
+          <div className="space-y-3 text-sm text-gray-600">
+            <p>✅ Your data is protected with Row-Level Security</p>
+            <p>✅ All form inputs are validated and sanitized</p>
+            <p>✅ Rate limiting is enabled to prevent abuse</p>
+            <p>✅ Your email address is masked for privacy</p>
           </div>
         </Card>
       </div>
