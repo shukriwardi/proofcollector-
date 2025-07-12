@@ -5,76 +5,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { MessageCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isValidSession, setIsValidSession] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user, updatePassword, signOut } = useAuth();
 
   useEffect(() => {
-    const checkResetSession = async () => {
-      try {
-        // Check if we have tokens from email link
-        const accessToken = searchParams.get('access_token');
-        const refreshToken = searchParams.get('refresh_token');
-        const type = searchParams.get('type');
-        
-        console.log('Reset password params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
-        
-        if (accessToken && refreshToken && type === 'recovery') {
-          // Set the session with the tokens from the URL
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-          
-          if (error) {
-            console.error('Session error:', error);
-            toast({
-              title: "Invalid reset link",
-              description: "This password reset link is invalid or has expired. Please request a new one.",
-              variant: "destructive",
-            });
-            navigate('/forgot-password');
-            return;
-          }
-          
-          if (data.session) {
-            setIsValidSession(true);
-            console.log('Valid reset session established for password update');
-          }
-        } else {
-          // No reset tokens, redirect to forgot password
-          toast({
-            title: "Access denied",
-            description: "Please use the password reset link from your email.",
-            variant: "destructive",
-          });
-          navigate('/forgot-password');
-        }
-      } catch (error) {
-        console.error('Error checking reset session:', error);
-        toast({
-          title: "Error",
-          description: "An error occurred. Please try again.",
-          variant: "destructive",
-        });
-        navigate('/forgot-password');
-      } finally {
-        setCheckingSession(false);
-      }
-    };
-
-    checkResetSession();
-  }, [searchParams, navigate, toast]);
+    // If user is not authenticated, redirect to forgot password
+    if (!user) {
+      console.log('No authenticated user found, redirecting to forgot password');
+      navigate('/forgot-password');
+    }
+  }, [user, navigate]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,9 +51,7 @@ const ResetPassword = () => {
     try {
       console.log('Attempting to update password...');
       
-      const { data, error } = await supabase.auth.updateUser({
-        password: password
-      });
+      const { error } = await updatePassword(password);
 
       if (error) {
         console.error('Password update error:', error);
@@ -114,14 +61,14 @@ const ResetPassword = () => {
           variant: "destructive",
         });
       } else {
-        console.log('Password updated successfully:', data);
+        console.log('Password updated successfully');
         toast({
           title: "Password updated successfully",
           description: "Your password has been changed. You can now log in with your new password.",
         });
         
         // Sign out the user so they have to log in with their new password
-        await supabase.auth.signOut();
+        await signOut();
         navigate("/login");
       }
     } catch (error: any) {
@@ -136,34 +83,13 @@ const ResetPassword = () => {
     }
   };
 
-  if (checkingSession) {
+  // Show loading while checking auth state
+  if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
-          <p>Verifying reset link...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isValidSession) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-center text-red-600">Invalid Reset Link</CardTitle>
-              <CardDescription className="text-center">
-                This password reset link is invalid or has expired.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link to="/forgot-password">
-                <Button className="w-full">Request New Reset Link</Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <p>Verifying authentication...</p>
         </div>
       </div>
     );

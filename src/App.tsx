@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,11 +24,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
   
-  // If we're on reset-password route, allow access
-  if (window.location.pathname === '/reset-password') {
-    return <>{children}</>;
-  }
-  
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -42,11 +36,6 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
-  
-  // If we're on reset-password route, always allow access
-  if (window.location.pathname === '/reset-password') {
-    return <>{children}</>;
   }
   
   if (user) {
@@ -62,6 +51,7 @@ const AppRoutes = () => (
     <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
     <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
     <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+    {/* Reset password route - accessible when user is authenticated via magic link */}
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
