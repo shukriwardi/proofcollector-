@@ -72,7 +72,7 @@ const Login = () => {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center space-x-2">
             <MessageCircle className="h-8 w-8 text-black" />
-            <span className="text-2xl font-semibold text-black">Testimonials</span>
+            <span className="text-2xl font-semibold text-black">ProofCollector</span>
           </Link>
         </div>
 

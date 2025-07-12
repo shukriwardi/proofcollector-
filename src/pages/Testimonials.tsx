@@ -227,7 +227,7 @@ const Testimonials = () => {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading testimonials...</p>
+            <p className="text-gray-600">Loading proof collection...</p>
           </div>
         </div>
       </AppLayout>
@@ -239,8 +239,8 @@ const Testimonials = () => {
       <div className="space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-black">Testimonials</h1>
-            <p className="text-gray-600 mt-2">Manage and display your collected testimonials</p>
+            <h1 className="text-3xl font-bold text-black">ProofCollector</h1>
+            <p className="text-gray-600 mt-2">Manage and display your collected social proof</p>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -260,7 +260,7 @@ const Testimonials = () => {
           {filteredTestimonials.length === 0 ? (
             <Card className="p-12 bg-white border-0 shadow-sm rounded-xl text-center">
               <p className="text-gray-500">
-                {searchTerm ? "No testimonials found matching your search." : "No testimonials yet. Share your survey links to start collecting testimonials!"}
+                {searchTerm ? "No proof found matching your search." : "No social proof yet. Share your survey links to start collecting testimonials!"}
               </p>
             </Card>
           ) : (

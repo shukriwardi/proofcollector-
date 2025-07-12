@@ -41,7 +41,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
-    { name: "Testimonials", href: "/testimonials", icon: MessageCircle },
+    { name: "ProofCollector", href: "/testimonials", icon: MessageCircle },
     { name: "Billing", href: "/billing", icon: CreditCard },
   ];
 
@@ -83,7 +83,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center space-x-2">
             <MessageCircle className="h-8 w-8 text-black" />
-            <span className="text-xl font-semibold text-black">Testimonials</span>
+            <span className="text-xl font-semibold text-black">ProofCollector</span>
           </Link>
 
           {/* Navigation Links */}
