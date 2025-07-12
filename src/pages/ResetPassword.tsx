@@ -64,12 +64,13 @@ const ResetPassword = () => {
         console.log('Password updated successfully');
         toast({
           title: "Password updated successfully",
-          description: "Your password has been changed. You can now log in with your new password.",
+          description: "Your password has been changed. Redirecting to dashboard...",
         });
         
-        // Sign out the user so they have to log in with their new password
-        await signOut();
-        navigate("/login");
+        // Redirect to dashboard after successful password update
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 1500);
       }
     } catch (error: any) {
       console.error('Unexpected error:', error);

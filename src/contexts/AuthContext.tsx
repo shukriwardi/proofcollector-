@@ -38,12 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Handle password recovery flow
-        if (event === 'PASSWORD_RECOVERY') {
-          console.log('Password recovery detected, redirecting to reset password page');
-          // Redirect to reset password page when user clicks magic link
-          window.location.href = '/reset-password';
-        }
+        // No automatic redirect - let the routing handle where users go
       }
     );
 
