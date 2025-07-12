@@ -30,7 +30,7 @@ const ResetPassword = () => {
         console.log('Reset password params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
         
         if (accessToken && refreshToken && type === 'recovery') {
-          // Set the session with the tokens from the URL but don't redirect yet
+          // Set the session with the tokens from the URL
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
@@ -49,7 +49,7 @@ const ResetPassword = () => {
           
           if (data.session) {
             setIsValidSession(true);
-            console.log('Valid reset session established, user must set new password');
+            console.log('Valid reset session established for password update');
           }
         } else {
           // No reset tokens, redirect to forgot password

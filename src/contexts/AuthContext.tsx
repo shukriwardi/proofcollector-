@@ -34,14 +34,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log('Auth state change:', event, session?.user?.email);
-        
-        // Don't set session/user during password recovery to prevent auto-redirect
-        if (event === 'PASSWORD_RECOVERY') {
-          console.log('Password recovery event detected, not setting session');
-          setLoading(false);
-          return;
-        }
-        
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
@@ -50,16 +42,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      // Check if this is a password recovery session
-      const urlParams = new URLSearchParams(window.location.search);
-      const isPasswordRecovery = urlParams.get('type') === 'recovery';
-      
-      if (isPasswordRecovery) {
-        console.log('Initial password recovery session detected, not setting session');
-        setLoading(false);
-        return;
-      }
-      
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
