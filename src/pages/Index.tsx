@@ -11,7 +11,7 @@ const Index = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white">
         <RouterLink to="/" className="flex items-center space-x-2">
           <MessageCircle className="h-8 w-8 text-black" />
-          <span className="text-xl font-semibold text-black">Testimonials</span>
+          <span className="text-xl font-semibold text-black">ProofCollector</span>
         </RouterLink>
         <div className="flex items-center space-x-4">
           <RouterLink to="/login">
@@ -157,7 +157,7 @@ const Index = () => {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center space-x-2 mb-4 md:mb-0">
             <MessageCircle className="h-6 w-6 text-black" />
-            <span className="text-lg font-semibold text-black">Testimonials</span>
+            <span className="text-lg font-semibold text-black">ProofCollector</span>
           </div>
           <div className="flex space-x-6 text-gray-600">
             <a href="#" className="hover:text-black transition-colors">Privacy</a>
