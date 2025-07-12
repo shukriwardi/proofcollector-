@@ -1,16 +1,16 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { MessageCircle, Star, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { testimonialSchema, type TestimonialFormData } from "@/lib/validation";
 import { sanitizeText, checkRateLimit, getGenericErrorMessage } from "@/lib/security";
+import { TestimonialForm } from "@/components/testimonials/TestimonialForm";
+import { TestimonialHeader } from "@/components/testimonials/TestimonialHeader";
+import { TestimonialSuccess } from "@/components/testimonials/TestimonialSuccess";
+import { SurveyNotFound } from "@/components/testimonials/SurveyNotFound";
+import { LoadingSpinner } from "@/components/testimonials/LoadingSpinner";
 
 interface Survey {
   id: string;
@@ -173,162 +173,33 @@ const Submit = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading survey...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading survey..." />;
   }
 
   if (!survey && linkId) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
-        <Card className="p-12 bg-white border-0 shadow-sm rounded-xl text-center max-w-md w-full">
-          <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-black mb-4">Survey Not Found</h1>
-          <p className="text-gray-600">
-            The survey you're looking for doesn't exist or has been removed.
-          </p>
-        </Card>
-      </div>
-    );
+    return <SurveyNotFound />;
   }
 
   if (isSubmitted) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
-        <Card className="p-12 bg-white border-0 shadow-sm rounded-xl text-center max-w-md w-full">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <MessageCircle className="h-8 w-8 text-green-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-black mb-4">Thank you!</h1>
-          <p className="text-gray-600 mb-6">
-            Your testimonial has been submitted successfully. We really appreciate you taking the time to share your experience.
-          </p>
-          <div className="flex justify-center space-x-1 mb-4">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-            ))}
-          </div>
-          <p className="text-sm text-gray-500">
-            Your feedback helps us improve and helps others make informed decisions.
-          </p>
-        </Card>
-      </div>
-    );
+    return <TestimonialSuccess />;
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
       <div className="w-full max-w-2xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <MessageCircle className="h-12 w-12 text-black mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-black mb-2">
-            {survey?.title || "Share Your Experience"}
-          </h1>
-          <p className="text-gray-600">
-            We'd love to hear about your experience. Your testimonial helps others learn about our services.
-          </p>
-        </div>
-
+        <TestimonialHeader title={survey?.title} />
+        
         <Card className="p-8 bg-white border-0 shadow-sm rounded-xl">
-          {rateLimited && (
-            <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start space-x-3">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-              <div>
-                <p className="text-yellow-800 font-medium">Rate limit reached</p>
-                <p className="text-yellow-700 text-sm">
-                  Please wait {Math.floor(cooldownTime / 60)}m {cooldownTime % 60}s before submitting again.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="name" className="text-black font-medium">Your Name *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black ${errors.name ? 'border-red-500' : ''}`}
-                  placeholder="Enter your full name"
-                  maxLength={100}
-                  required
-                />
-                {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-              </div>
-
-              <div>
-                <Label htmlFor="email" className="text-black font-medium">Email Address</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black ${errors.email ? 'border-red-500' : ''}`}
-                  placeholder="Enter your email (optional)"
-                  maxLength={254}
-                />
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-                <p className="text-xs text-gray-500 mt-1">Optional - only used for follow-up if needed</p>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="testimonial" className="text-black font-medium">
-                {survey?.question || "Your Testimonial"} *
-              </Label>
-              <Textarea
-                id="testimonial"
-                name="testimonial"
-                value={formData.testimonial}
-                onChange={handleChange}
-                rows={6}
-                className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black resize-none ${errors.testimonial ? 'border-red-500' : ''}`}
-                placeholder="Tell us about your experience... What did you like? How did we help you? What would you tell others?"
-                maxLength={1000}
-                required
-              />
-              {errors.testimonial && <p className="text-red-500 text-sm mt-1">{errors.testimonial}</p>}
-              <p className="text-xs text-gray-500 mt-1">
-                {formData.testimonial.length}/1000 characters
-              </p>
-            </div>
-
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600 mb-2">
-                <strong>Tips for a great testimonial:</strong>
-              </p>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• Be specific about what you liked or found helpful</li>
-                <li>• Mention the results or benefits you experienced</li>
-                <li>• Share what you'd tell others considering our services</li>
-                <li>• Be authentic and honest about your experience</li>
-              </ul>
-            </div>
-
-            <Button 
-              type="submit" 
-              disabled={submitting || rateLimited}
-              className="w-full bg-black text-white hover:bg-gray-800 rounded-lg py-3 text-lg disabled:opacity-50"
-            >
-              {submitting ? "Submitting..." : rateLimited ? `Wait ${Math.floor(cooldownTime / 60)}m ${cooldownTime % 60}s` : "Submit Testimonial"}
-            </Button>
-
-            <p className="text-center text-xs text-gray-500">
-              By submitting this testimonial, you give us permission to use it for marketing purposes. 
-              We respect your privacy and will only use the information you provide here.
-            </p>
-          </form>
+          <TestimonialForm
+            formData={formData}
+            errors={errors}
+            rateLimited={rateLimited}
+            cooldownTime={cooldownTime}
+            submitting={submitting}
+            surveyQuestion={survey?.question}
+            onSubmit={handleSubmit}
+            onChange={handleChange}
+          />
         </Card>
       </div>
     </div>
