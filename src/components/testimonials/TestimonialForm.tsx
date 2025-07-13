@@ -1,186 +1,169 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle } from "lucide-react";
-import { testimonialSchema, type TestimonialFormData } from "@/lib/validation";
-import { sanitizeText, getSecureErrorMessage } from "@/lib/security";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
+import { testimonialSchema } from "@/lib/validation";
 import { useSecurity } from "@/hooks/useSecurity";
+import { getSecureErrorMessage } from "@/lib/security";
+import { supabase } from "@/integrations/supabase/client";
 
-interface TestimonialFormProps {
-  formData: TestimonialFormData;
-  errors: Partial<TestimonialFormData>;
-  rateLimited: boolean;
-  cooldownTime: number;
-  submitting: boolean;
-  surveyQuestion?: string;
-  onSubmit: (e: React.FormEvent) => void;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-}
-
-export const TestimonialForm = ({
-  formData,
-  errors,
-  rateLimited,
-  cooldownTime,
-  submitting,
-  surveyQuestion,
-  onSubmit,
-  onChange
-}: TestimonialFormProps) => {
-  const { checkRateLimit, validateInput } = useSecurity();
+export const TestimonialForm = ({ surveyId }: { surveyId: string }) => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    testimonial: ""
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const { checkRateLimit, validateInput } = useSecurity();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submission started');
+    
+    setIsSubmitting(true);
     setValidationErrors([]);
+    setSubmitSuccess(false);
 
-    // Client-side validation with security checks
-    const validation = await validateInput(testimonialSchema, formData);
-    if (!validation.success) {
-      if ('errors' in validation) {
-        setValidationErrors(validation.errors);
+    try {
+      // Rate limiting check
+      const rateLimitCheck = await checkRateLimit(
+        `testimonial_${surveyId}`,
+        'testimonial',
+        3,
+        60000
+      );
+
+      if (!rateLimitCheck.allowed) {
+        setValidationErrors([getSecureErrorMessage('rate-limit')]);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Client-side validation with security checks
+      console.log('Validating form data:', formData);
+      const validation = await validateInput(testimonialSchema, formData);
+      if (!validation.success) {
+        if ('errors' in validation) {
+          setValidationErrors(validation.errors);
+        } else {
+          setValidationErrors(['Unknown validation error.']);
+        }
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Submit to Supabase
+      console.log('Submitting to database');
+      const { error } = await supabase
+        .from('testimonials')
+        .insert([{
+          name: validation.data.name,
+          email: validation.data.email || null,
+          testimonial: validation.data.testimonial,
+          survey_id: surveyId
+        }]);
+
+      if (error) {
+        console.error('Database error:', error);
+        setValidationErrors([getSecureErrorMessage('database')]);
       } else {
-        setValidationErrors(['Unknown validation error.']);
+        console.log('Testimonial submitted successfully');
+        setSubmitSuccess(true);
+        setFormData({ name: "", email: "", testimonial: "" });
       }
-      return;
+    } catch (error) {
+      console.error('Submission error:', error);
+      setValidationErrors([getSecureErrorMessage('form')]);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Rate limiting check
-    const rateLimitCheck = await checkRateLimit(
-      formData.email || 'anonymous',
-      'testimonial',
-      3, // Max 3 testimonials per 15 minutes
-      15 * 60 * 1000
-    );
-
-    if (!rateLimitCheck.allowed) {
-      setValidationErrors([getSecureErrorMessage('rate-limit')]);
-      return;
-    }
-
-    onSubmit(e);
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    // Sanitize input on change
-    const sanitizedValue = sanitizeText(e.target.value);
-    onChange({
-      ...e,
-      target: {
-        ...e.target,
-        value: sanitizedValue
-      }
-    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {(rateLimited || validationErrors.length > 0) && (
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start space-x-3">
-          <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-          <div>
-            {rateLimited ? (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>Share Your Testimonial</CardTitle>
+        <CardDescription>
+          Your feedback helps us improve and helps others make informed decisions.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {submitSuccess && (
+          <Alert className="mb-4">
+            <AlertDescription>
+              Thank you! Your testimonial has been submitted successfully.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {validationErrors.length > 0 && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>
+              <ul className="list-disc list-inside">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>{error}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Name *</Label>
+            <Input
+              id="name"
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              required
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email (optional)</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="testimonial">Testimonial *</Label>
+            <Textarea
+              id="testimonial"
+              value={formData.testimonial}
+              onChange={(e) => setFormData(prev => ({ ...prev, testimonial: e.target.value }))}
+              required
+              disabled={isSubmitting}
+              rows={4}
+              placeholder="Share your experience..."
+            />
+          </div>
+
+          <Button type="submit" disabled={isSubmitting} className="w-full">
+            {isSubmitting ? (
               <>
-                <p className="text-yellow-800 font-medium">Rate limit reached</p>
-                <p className="text-yellow-700 text-sm">
-                  Please wait {Math.floor(cooldownTime / 60)}m {cooldownTime % 60}s before submitting again.
-                </p>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
               </>
             ) : (
-              <>
-                <p className="text-yellow-800 font-medium">Validation Error</p>
-                {validationErrors.map((error, index) => (
-                  <p key={index} className="text-yellow-700 text-sm">{error}</p>
-                ))}
-              </>
+              'Submit Testimonial'
             )}
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <Label htmlFor="name" className="text-black font-medium">Your Name *</Label>
-          <Input
-            id="name"
-            name="name"
-            type="text"
-            value={formData.name}
-            onChange={handleChange}
-            className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black ${errors.name ? 'border-red-500' : ''}`}
-            placeholder="Enter your full name"
-            maxLength={100}
-            required
-            autoComplete="name"
-          />
-          {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
-        </div>
-
-        <div>
-          <Label htmlFor="email" className="text-black font-medium">Email Address</Label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black ${errors.email ? 'border-red-500' : ''}`}
-            placeholder="Enter your email (optional)"
-            maxLength={254}
-            autoComplete="email"
-          />
-          {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-          <p className="text-xs text-gray-500 mt-1">Optional - only used for follow-up if needed</p>
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="testimonial" className="text-black font-medium">
-          {surveyQuestion || "Your Testimonial"} *
-        </Label>
-        <Textarea
-          id="testimonial"
-          name="testimonial"
-          value={formData.testimonial}
-          onChange={handleChange}
-          rows={6}
-          className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black resize-none ${errors.testimonial ? 'border-red-500' : ''}`}
-          placeholder="Tell us about your experience... What did you like? How did we help you? What would you tell others?"
-          maxLength={1000}
-          required
-        />
-        {errors.testimonial && <p className="text-red-500 text-sm mt-1">{errors.testimonial}</p>}
-        <p className="text-xs text-gray-500 mt-1">
-          {formData.testimonial.length}/1000 characters
-        </p>
-      </div>
-
-      <div className="bg-gray-50 p-4 rounded-lg">
-        <p className="text-sm text-gray-600 mb-2">
-          <strong>Tips for a great testimonial:</strong>
-        </p>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>• Be specific about what you liked or found helpful</li>
-          <li>• Mention the results or benefits you experienced</li>
-          <li>• Share what you'd tell others considering our services</li>
-          <li>• Be authentic and honest about your experience</li>
-        </ul>
-      </div>
-
-      <Button 
-        type="submit" 
-        disabled={submitting || rateLimited || validationErrors.length > 0}
-        className="w-full bg-black text-white hover:bg-gray-800 rounded-lg py-3 text-lg disabled:opacity-50"
-      >
-        {submitting ? "Submitting..." : rateLimited ? `Wait ${Math.floor(cooldownTime / 60)}m ${cooldownTime % 60}s` : "Submit Testimonial"}
-      </Button>
-
-      <p className="text-center text-xs text-gray-500">
-        By submitting this testimonial, you give us permission to use it for marketing purposes. 
-        We respect your privacy and will only use the information you provide here.
-      </p>
-    </form>
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
