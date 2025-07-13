@@ -13,23 +13,45 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isValidSession, setIsValidSession] = useState(false);
+  const [isPasswordResetSession, setIsPasswordResetSession] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, session, updatePassword } = useAuth();
 
   useEffect(() => {
-    // Check if user has a valid session for password recovery
-    if (session && session.user) {
-      console.log('Valid session found for password reset');
-      setIsValidSession(true);
-    } else {
-      console.log('No valid session, redirecting to forgot password');
-      // If no valid session, redirect to forgot password page
-      setTimeout(() => {
+    const checkPasswordResetSession = async () => {
+      try {
+        // Check if this is a password recovery session
+        if (session && session.user) {
+          // Additional check to see if this is a password recovery flow
+          // We can detect this by checking if the URL has the recovery tokens
+          const urlParams = new URLSearchParams(window.location.search);
+          const hasRecoveryTokens = urlParams.has('access_token') || urlParams.has('token_hash');
+          
+          if (hasRecoveryTokens || window.location.hash.includes('access_token')) {
+            console.log('Password recovery session detected');
+            setIsPasswordResetSession(true);
+          } else {
+            console.log('Regular session, not password recovery');
+            // If user has regular session but no recovery tokens, redirect to dashboard
+            navigate('/dashboard');
+          }
+        } else {
+          console.log('No session found, redirecting to forgot password');
+          setTimeout(() => {
+            navigate('/forgot-password');
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
         navigate('/forgot-password');
-      }, 2000);
-    }
+      } finally {
+        setCheckingSession(false);
+      }
+    };
+
+    checkPasswordResetSession();
   }, [session, navigate]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -92,13 +114,25 @@ const ResetPassword = () => {
   };
 
   // Show loading while checking session validity
-  if (!isValidSession) {
+  if (checkingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
           <p>Verifying reset link...</p>
-          <p className="text-sm text-gray-600 mt-2">If this takes too long, you'll be redirected to request a new reset link.</p>
+          <p className="text-sm text-gray-600 mt-2">Please wait while we verify your password reset request.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not a password reset session, show error message
+  if (!isPasswordResetSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p>Invalid or expired reset link.</p>
+          <p className="text-sm text-gray-600 mt-2">Redirecting to request a new reset link...</p>
         </div>
       </div>
     );
