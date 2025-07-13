@@ -38,9 +38,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Special handling for PASSWORD_RECOVERY - don't auto-redirect
+        // Don't auto-redirect for password recovery - let the reset page handle it
         if (event === 'PASSWORD_RECOVERY') {
-          console.log('Password recovery detected - staying on current page');
+          console.log('Password recovery detected - staying on reset page');
           return;
         }
       }
@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const resetPassword = async (email: string) => {
-    // Send magic link that will redirect to reset-password page
+    // Send reset link that redirects to reset-password page
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });

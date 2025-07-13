@@ -12,47 +12,37 @@ export const usePasswordReset = () => {
   const [checkingSession, setCheckingSession] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, session, updatePassword } = useAuth();
-
-  const checkForPasswordResetSession = () => {
-    // Check URL parameters for recovery tokens
-    const urlParams = new URLSearchParams(window.location.search);
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    
-    const hasAccessToken = urlParams.has('access_token') || hashParams.has('access_token');
-    const hasTokenHash = urlParams.has('token_hash') || hashParams.has('token_hash');
-    const hasType = urlParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
-    
-    console.log('URL params:', Object.fromEntries(urlParams));
-    console.log('Hash params:', Object.fromEntries(hashParams));
-    console.log('Has access token:', hasAccessToken);
-    console.log('Has token hash:', hasTokenHash);
-    console.log('Has recovery type:', hasType);
-    
-    // If we have recovery tokens in URL or session indicates password recovery
-    if ((hasAccessToken && hasType) || (hasTokenHash && hasType)) {
-      console.log('Valid password recovery session detected');
-      setIsValidResetSession(true);
-      setCheckingSession(false);
-    } else if (session && user) {
-      // Check if this is a fresh login from password recovery
-      console.log('User session exists, checking if from recovery...');
-      // For now, assume if we have a session but no tokens, redirect to dashboard
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1000);
-    } else {
-      console.log('No valid reset session, redirecting to forgot password');
-      setTimeout(() => {
-        navigate('/forgot-password');
-      }, 2000);
-    }
-  };
+  const { updatePassword } = useAuth();
 
   useEffect(() => {
-    // Add a small delay to ensure URL params are fully loaded
-    setTimeout(checkForPasswordResetSession, 100);
-  }, [session, user, navigate]);
+    const checkResetSession = () => {
+      // Check URL parameters for recovery tokens
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      
+      // Look for access_token and type=recovery in either URL params or hash
+      const accessToken = urlParams.get('access_token') || hashParams.get('access_token');
+      const tokenType = urlParams.get('type') || hashParams.get('type');
+      
+      console.log('Checking reset session - Access token exists:', !!accessToken);
+      console.log('Token type:', tokenType);
+      
+      if (accessToken && tokenType === 'recovery') {
+        console.log('Valid password recovery session detected');
+        setIsValidResetSession(true);
+      } else {
+        console.log('No valid reset session found, redirecting to forgot password');
+        // Redirect to forgot password if no valid reset session
+        setTimeout(() => {
+          navigate('/forgot-password');
+        }, 2000);
+      }
+      
+      setCheckingSession(false);
+    };
+
+    checkResetSession();
+  }, [navigate]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,15 +83,15 @@ export const usePasswordReset = () => {
         console.log('Password updated successfully');
         toast({
           title: "Password updated successfully",
-          description: "Your password has been changed. Redirecting to dashboard...",
+          description: "Your password has been changed. Redirecting to login...",
         });
         
         // Clear URL parameters after successful password update
         window.history.replaceState({}, document.title, window.location.pathname);
         
-        // Redirect to dashboard after successful password update
+        // Redirect to login page after successful password update
         setTimeout(() => {
-          navigate("/dashboard");
+          navigate("/login");
         }, 1500);
       }
     } catch (error: any) {
