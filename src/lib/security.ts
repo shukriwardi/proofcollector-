@@ -83,6 +83,32 @@ export const checkServerRateLimit = async (
   }
 };
 
+// Client-side rate limiting fallback (for backward compatibility)
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+export const checkRateLimit = (
+  key: string,
+  maxRequests: number = 5,
+  windowMs: number = 15 * 60 * 1000
+): { allowed: boolean; remainingRequests: number; resetTime: number } => {
+  const now = Date.now();
+  const existing = rateLimitStore.get(key);
+
+  if (!existing || now > existing.resetTime) {
+    const resetTime = now + windowMs;
+    rateLimitStore.set(key, { count: 1, resetTime });
+    return { allowed: true, remainingRequests: maxRequests - 1, resetTime };
+  }
+
+  if (existing.count >= maxRequests) {
+    return { allowed: false, remainingRequests: 0, resetTime: existing.resetTime };
+  }
+
+  existing.count++;
+  rateLimitStore.set(key, existing);
+  return { allowed: true, remainingRequests: maxRequests - existing.count, resetTime: existing.resetTime };
+};
+
 // CSRF token generation and validation
 export const generateCSRFToken = (): string => {
   if (typeof window !== 'undefined') {
@@ -125,6 +151,11 @@ export const getSecureErrorMessage = (type: 'form' | 'auth' | 'database' | 'rate
     'rate-limit': 'Too many requests. Please wait before trying again.'
   };
   return messages[type];
+};
+
+// Generic error message function (for backward compatibility)
+export const getGenericErrorMessage = (type: 'form' | 'auth' | 'database' = 'form'): string => {
+  return getSecureErrorMessage(type);
 };
 
 // Enhanced email masking for privacy
