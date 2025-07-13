@@ -13,17 +13,24 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isValidSession, setIsValidSession] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user, updatePassword, signOut } = useAuth();
+  const { user, session, updatePassword } = useAuth();
 
   useEffect(() => {
-    // If user is not authenticated, redirect to forgot password
-    if (!user) {
-      console.log('No authenticated user found, redirecting to forgot password');
-      navigate('/forgot-password');
+    // Check if user has a valid session for password recovery
+    if (session && session.user) {
+      console.log('Valid session found for password reset');
+      setIsValidSession(true);
+    } else {
+      console.log('No valid session, redirecting to forgot password');
+      // If no valid session, redirect to forgot password page
+      setTimeout(() => {
+        navigate('/forgot-password');
+      }, 2000);
     }
-  }, [user, navigate]);
+  }, [session, navigate]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +56,7 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      console.log('Attempting to update password...');
+      console.log('Attempting to update password for user:', user?.email);
       
       const { error } = await updatePassword(password);
 
@@ -84,13 +91,14 @@ const ResetPassword = () => {
     }
   };
 
-  // Show loading while checking auth state
-  if (!user) {
+  // Show loading while checking session validity
+  if (!isValidSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
-          <p>Verifying authentication...</p>
+          <p>Verifying reset link...</p>
+          <p className="text-sm text-gray-600 mt-2">If this takes too long, you'll be redirected to request a new reset link.</p>
         </div>
       </div>
     );
@@ -159,10 +167,10 @@ const ResetPassword = () => {
           <CardContent className="pt-0">
             <div className="text-center">
               <Link 
-                to="/login" 
+                to="/forgot-password" 
                 className="text-sm text-gray-600 hover:text-black transition-colors"
               >
-                Back to login
+                Request new reset link
               </Link>
             </div>
           </CardContent>
