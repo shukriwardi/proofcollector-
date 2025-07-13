@@ -38,8 +38,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Do not automatically redirect on PASSWORD_RECOVERY
-        // Let the ResetPassword component handle the flow
+        // Special handling for PASSWORD_RECOVERY - don't auto-redirect
+        if (event === 'PASSWORD_RECOVERY') {
+          console.log('Password recovery detected - staying on current page');
+          return;
+        }
       }
     );
 

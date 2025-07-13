@@ -13,46 +13,51 @@ const ResetPassword = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isPasswordResetSession, setIsPasswordResetSession] = useState(false);
+  const [isValidResetSession, setIsValidResetSession] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, session, updatePassword } = useAuth();
 
   useEffect(() => {
-    const checkPasswordResetSession = async () => {
-      try {
-        // Check if this is a password recovery session
-        if (session && session.user) {
-          // Additional check to see if this is a password recovery flow
-          // We can detect this by checking if the URL has the recovery tokens
-          const urlParams = new URLSearchParams(window.location.search);
-          const hasRecoveryTokens = urlParams.has('access_token') || urlParams.has('token_hash');
-          
-          if (hasRecoveryTokens || window.location.hash.includes('access_token')) {
-            console.log('Password recovery session detected');
-            setIsPasswordResetSession(true);
-          } else {
-            console.log('Regular session, not password recovery');
-            // If user has regular session but no recovery tokens, redirect to dashboard
-            navigate('/dashboard');
-          }
-        } else {
-          console.log('No session found, redirecting to forgot password');
-          setTimeout(() => {
-            navigate('/forgot-password');
-          }, 2000);
-        }
-      } catch (error) {
-        console.error('Error checking session:', error);
-        navigate('/forgot-password');
-      } finally {
+    const checkForPasswordResetSession = () => {
+      // Check URL parameters for recovery tokens
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      
+      const hasAccessToken = urlParams.has('access_token') || hashParams.has('access_token');
+      const hasTokenHash = urlParams.has('token_hash') || hashParams.has('token_hash');
+      const hasType = urlParams.get('type') === 'recovery' || hashParams.get('type') === 'recovery';
+      
+      console.log('URL params:', Object.fromEntries(urlParams));
+      console.log('Hash params:', Object.fromEntries(hashParams));
+      console.log('Has access token:', hasAccessToken);
+      console.log('Has token hash:', hasTokenHash);
+      console.log('Has recovery type:', hasType);
+      
+      // If we have recovery tokens in URL or session indicates password recovery
+      if ((hasAccessToken && hasType) || (hasTokenHash && hasType)) {
+        console.log('Valid password recovery session detected');
+        setIsValidResetSession(true);
         setCheckingSession(false);
+      } else if (session && user) {
+        // Check if this is a fresh login from password recovery
+        console.log('User session exists, checking if from recovery...');
+        // For now, assume if we have a session but no tokens, redirect to dashboard
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1000);
+      } else {
+        console.log('No valid reset session, redirecting to forgot password');
+        setTimeout(() => {
+          navigate('/forgot-password');
+        }, 2000);
       }
     };
 
-    checkPasswordResetSession();
-  }, [session, navigate]);
+    // Add a small delay to ensure URL params are fully loaded
+    setTimeout(checkForPasswordResetSession, 100);
+  }, [session, user, navigate]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +83,7 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      console.log('Attempting to update password for user:', user?.email);
+      console.log('Attempting to update password...');
       
       const { error } = await updatePassword(password);
 
@@ -95,6 +100,9 @@ const ResetPassword = () => {
           title: "Password updated successfully",
           description: "Your password has been changed. Redirecting to dashboard...",
         });
+        
+        // Clear URL parameters after successful password update
+        window.history.replaceState({}, document.title, window.location.pathname);
         
         // Redirect to dashboard after successful password update
         setTimeout(() => {
@@ -126,8 +134,8 @@ const ResetPassword = () => {
     );
   }
 
-  // If not a password reset session, show error message
-  if (!isPasswordResetSession) {
+  // If not a valid reset session, show error message
+  if (!isValidResetSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
