@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -19,7 +18,10 @@ interface Survey {
 }
 
 const Submit = () => {
-  const { linkId } = useParams();
+  const { linkId, id } = useParams();
+  // Use either linkId (from /submit/:linkId) or id (from /link/:id)
+  const surveyId = linkId || id;
+  
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState<TestimonialFormData>({
@@ -35,12 +37,12 @@ const Submit = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (linkId) {
+    if (surveyId) {
       fetchSurvey();
     } else {
       setLoading(false);
     }
-  }, [linkId]);
+  }, [surveyId]);
 
   // Cooldown timer effect
   useEffect(() => {
@@ -61,14 +63,19 @@ const Submit = () => {
 
   const fetchSurvey = async () => {
     try {
+      console.log('Fetching survey with ID:', surveyId);
       const { data, error } = await supabase
         .from('surveys')
         .select('id, title, question')
-        .eq('id', linkId)
+        .eq('id', surveyId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
+      console.log('Survey data fetched:', data);
       setSurvey(data);
     } catch (error) {
       console.error('Error fetching survey:', error);
@@ -176,7 +183,7 @@ const Submit = () => {
     return <LoadingSpinner message="Loading survey..." />;
   }
 
-  if (!survey && linkId) {
+  if (!survey && surveyId) {
     return <SurveyNotFound />;
   }
 

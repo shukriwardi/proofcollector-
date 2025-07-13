@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -54,13 +53,13 @@ const AppRoutes = () => (
     <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
     <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
     <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-    {/* Reset password route - accessible when user is authenticated via magic link */}
     <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
     <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
     <Route path="/submit" element={<Submit />} />
     <Route path="/submit/:linkId" element={<Submit />} />
+    <Route path="/link/:id" element={<Submit />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
