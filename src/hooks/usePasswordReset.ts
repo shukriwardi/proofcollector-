@@ -83,15 +83,15 @@ export const usePasswordReset = () => {
         console.log('Password updated successfully');
         toast({
           title: "Password updated successfully",
-          description: "Your password has been changed. Redirecting to login...",
+          description: "Your password has been changed. Redirecting to dashboard...",
         });
         
         // Clear URL parameters after successful password update
         window.history.replaceState({}, document.title, window.location.pathname);
         
-        // Redirect to login page after successful password update
+        // Redirect to dashboard after successful password update
         setTimeout(() => {
-          navigate("/login");
+          navigate("/dashboard");
         }, 1500);
       }
     } catch (error: any) {
