@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle } from "lucide-react";
 import { testimonialSchema, type TestimonialFormData } from "@/lib/validation";
-import { sanitizeText } from "@/lib/security";
+import { sanitizeText, getSecureErrorMessage } from "@/lib/security";
+import { useSecurity } from "@/hooks/useSecurity";
 
 interface TestimonialFormProps {
   formData: TestimonialFormData;
@@ -29,16 +30,69 @@ export const TestimonialForm = ({
   onSubmit,
   onChange
 }: TestimonialFormProps) => {
+  const { checkRateLimit, validateInput } = useSecurity();
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setValidationErrors([]);
+
+    // Client-side validation with security checks
+    const validation = await validateInput(testimonialSchema, formData);
+    if (!validation.success) {
+      setValidationErrors(validation.errors);
+      return;
+    }
+
+    // Rate limiting check
+    const rateLimitCheck = await checkRateLimit(
+      formData.email || 'anonymous',
+      'testimonial',
+      3, // Max 3 testimonials per 15 minutes
+      15 * 60 * 1000
+    );
+
+    if (!rateLimitCheck.allowed) {
+      setValidationErrors([getSecureErrorMessage('rate-limit')]);
+      return;
+    }
+
+    onSubmit(e);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    // Sanitize input on change
+    const sanitizedValue = sanitizeText(e.target.value);
+    onChange({
+      ...e,
+      target: {
+        ...e.target,
+        value: sanitizedValue
+      }
+    });
+  };
+
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      {rateLimited && (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {(rateLimited || validationErrors.length > 0) && (
         <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start space-x-3">
           <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
           <div>
-            <p className="text-yellow-800 font-medium">Rate limit reached</p>
-            <p className="text-yellow-700 text-sm">
-              Please wait {Math.floor(cooldownTime / 60)}m {cooldownTime % 60}s before submitting again.
-            </p>
+            {rateLimited ? (
+              <>
+                <p className="text-yellow-800 font-medium">Rate limit reached</p>
+                <p className="text-yellow-700 text-sm">
+                  Please wait {Math.floor(cooldownTime / 60)}m {cooldownTime % 60}s before submitting again.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-yellow-800 font-medium">Validation Error</p>
+                {validationErrors.map((error, index) => (
+                  <p key={index} className="text-yellow-700 text-sm">{error}</p>
+                ))}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -51,11 +105,12 @@ export const TestimonialForm = ({
             name="name"
             type="text"
             value={formData.name}
-            onChange={onChange}
+            onChange={handleChange}
             className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black ${errors.name ? 'border-red-500' : ''}`}
             placeholder="Enter your full name"
             maxLength={100}
             required
+            autoComplete="name"
           />
           {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
         </div>
@@ -67,10 +122,11 @@ export const TestimonialForm = ({
             name="email"
             type="email"
             value={formData.email}
-            onChange={onChange}
+            onChange={handleChange}
             className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black ${errors.email ? 'border-red-500' : ''}`}
             placeholder="Enter your email (optional)"
             maxLength={254}
+            autoComplete="email"
           />
           {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
           <p className="text-xs text-gray-500 mt-1">Optional - only used for follow-up if needed</p>
@@ -85,7 +141,7 @@ export const TestimonialForm = ({
           id="testimonial"
           name="testimonial"
           value={formData.testimonial}
-          onChange={onChange}
+          onChange={handleChange}
           rows={6}
           className={`mt-2 rounded-lg border-gray-200 focus:border-black focus:ring-black resize-none ${errors.testimonial ? 'border-red-500' : ''}`}
           placeholder="Tell us about your experience... What did you like? How did we help you? What would you tell others?"
@@ -112,7 +168,7 @@ export const TestimonialForm = ({
 
       <Button 
         type="submit" 
-        disabled={submitting || rateLimited}
+        disabled={submitting || rateLimited || validationErrors.length > 0}
         className="w-full bg-black text-white hover:bg-gray-800 rounded-lg py-3 text-lg disabled:opacity-50"
       >
         {submitting ? "Submitting..." : rateLimited ? `Wait ${Math.floor(cooldownTime / 60)}m ${cooldownTime % 60}s` : "Submit Testimonial"}
