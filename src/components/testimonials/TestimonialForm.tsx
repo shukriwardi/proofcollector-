@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +39,11 @@ export const TestimonialForm = ({
     // Client-side validation with security checks
     const validation = await validateInput(testimonialSchema, formData);
     if (!validation.success) {
-      setValidationErrors(validation.errors);
+      if ('errors' in validation) {
+        setValidationErrors(validation.errors);
+      } else {
+        setValidationErrors(['Unknown validation error.']);
+      }
       return;
     }
 

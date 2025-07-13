@@ -55,11 +55,13 @@ export const useSecurity = () => {
     const result = await validateOnServer(schema, data, { userAgent });
     
     if (!result.success) {
-      logSecurityEvent({
-        type: 'suspicious_input',
-        details: { errors: result.errors, data: JSON.stringify(data).substring(0, 100) },
-        userAgent
-      });
+      if ('errors' in result) {
+        logSecurityEvent({
+          type: 'suspicious_input',
+          details: { errors: result.errors, data: JSON.stringify(data).substring(0, 100) },
+          userAgent
+        });
+      }
     }
     
     return result;
