@@ -89,51 +89,24 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Social Proof Section */}
+      {/* Honest Testimonials Section */}
       <section className="px-6 py-16">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-3xl font-bold text-black mb-12">
             Trusted by growing businesses
           </h2>
-          <div className="grid md:grid-cols-2 gap-8">
-            <Card className="p-8 bg-white border border-gray-100 rounded-xl">
-              <div className="flex items-center mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                ))}
-              </div>
-              <p className="text-gray-600 mb-4">
-                "This tool has transformed how we collect client feedback. The process is so simple, 
-                and our clients love how easy it is to submit testimonials."
-              </p>
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-gray-200 rounded-full mr-3"></div>
-                <div>
-                  <p className="font-semibold text-black">Sarah Johnson</p>
-                  <p className="text-sm text-gray-500">Marketing Consultant</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-8 bg-white border border-gray-100 rounded-xl">
-              <div className="flex items-center mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                ))}
-              </div>
-              <p className="text-gray-600 mb-4">
-                "Finally, a clean and professional way to gather testimonials. 
-                The dashboard makes it easy to manage everything in one place."
-              </p>
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-gray-200 rounded-full mr-3"></div>
-                <div>
-                  <p className="font-semibold text-black">Michael Chen</p>
-                  <p className="text-sm text-gray-500">Life Coach</p>
-                </div>
-              </div>
-            </Card>
-          </div>
+          
+          <Card className="p-12 bg-gray-50 border border-gray-100 rounded-xl max-w-2xl mx-auto">
+            <div className="mb-6">
+              <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            </div>
+            <h3 className="text-xl font-semibold text-black mb-4">
+              No testimonials yet — be the first to leave one!
+            </h3>
+            <p className="text-gray-600 leading-relaxed">
+              Once we collect real feedback from our amazing early users, you'll see it featured here.
+            </p>
+          </Card>
         </div>
       </section>
 
