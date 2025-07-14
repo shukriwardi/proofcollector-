@@ -1,7 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Star, MessageCircle, Link, BarChart3 } from "lucide-react";
+import { Star, MessageCircle, Link, BarChart3, Mail } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 
 const Index = () => {
@@ -106,6 +105,29 @@ const Index = () => {
             <p className="text-gray-600 leading-relaxed">
               Once we collect real feedback from our amazing early users, you'll see it featured here.
             </p>
+          </Card>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section className="px-6 py-16 bg-gray-50">
+        <div className="max-w-4xl mx-auto text-center">
+          <Card className="p-8 bg-white border border-gray-100 rounded-xl max-w-2xl mx-auto">
+            <div className="mb-6">
+              <Mail className="h-10 w-10 text-black mx-auto mb-4" />
+            </div>
+            <h3 className="text-2xl font-semibold text-black mb-4">
+              Questions or feedback?
+            </h3>
+            <p className="text-gray-600 mb-4">
+              I'd love to hear from you. Email me directly at
+            </p>
+            <a 
+              href="mailto:shukriwardi01@gmail.com" 
+              className="text-black font-medium hover:text-gray-700 transition-colors"
+            >
+              shukriwardi01@gmail.com
+            </a>
           </Card>
         </div>
       </section>
