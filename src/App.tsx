@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -68,6 +69,39 @@ const AppRoutes = () => (
 
 const App = () => {
   useEffect(() => {
+    // Hide Lovable badge for Pro users
+    const hideLovableBadge = () => {
+      const badgeSelectors = [
+        '[data-lovable-badge]',
+        '.lovable-badge',
+        '#lovable-badge',
+        '[class*="lovable-badge"]',
+        '[id*="lovable-badge"]',
+        '[data-testid*="lovable"]',
+        '[class*="gptengineer"]'
+      ];
+      
+      badgeSelectors.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(element => {
+          if (element instanceof HTMLElement) {
+            element.style.display = 'none';
+            element.style.visibility = 'hidden';
+            element.remove(); // Actually remove it from DOM
+          }
+        });
+      });
+    };
+
+    // Run immediately and also observe for dynamically added badges
+    hideLovableBadge();
+    
+    const observer = new MutationObserver(hideLovableBadge);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
     // Set security headers (where possible in client-side)
     const cspDirectives = getCSPDirectives();
     
@@ -106,8 +140,13 @@ const App = () => {
       
       return () => {
         document.removeEventListener('contextmenu', handleContextMenu);
+        observer.disconnect();
       };
     }
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   return (
