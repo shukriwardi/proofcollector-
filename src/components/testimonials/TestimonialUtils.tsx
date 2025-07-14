@@ -86,23 +86,23 @@ export const useTestimonialUtils = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `proof-${testimonial.name.replace(/\s+/g, '-').toLowerCase()}.png`;
+        a.download = `testimonial-${testimonial.name.replace(/\s+/g, '-').toLowerCase()}.png`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
         toast({
-          title: "✅ Proof Downloaded!",
-          description: "The proof image has been saved to your device.",
+          title: "✅ Testimonial Downloaded!",
+          description: "The testimonial image has been saved to your device.",
         });
       }, 'image/png');
 
     } catch (error) {
-      console.error('Error downloading proof:', error);
+      console.error('Error downloading testimonial:', error);
       toast({
         title: "Download Failed",
-        description: "Failed to download proof. Please try again.",
+        description: "Failed to download testimonial. Please try again.",
         variant: "destructive",
       });
     }
@@ -110,7 +110,8 @@ export const useTestimonialUtils = () => {
 
   const copyEmbedCode = (testimonial: Testimonial) => {
     const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-    const embedCode = `<iframe src="${currentOrigin}/embed/${testimonial.id}" width="400" height="300" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"></iframe>`;
+    // Use the testimonial viewing URL (/t/:id) for embed
+    const embedCode = `<iframe src="${currentOrigin}/t/${testimonial.id}" width="400" height="300" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"></iframe>`;
     
     navigator.clipboard.writeText(embedCode).then(() => {
       toast({
@@ -126,8 +127,27 @@ export const useTestimonialUtils = () => {
     });
   };
 
+  const copyTestimonialLink = (testimonial: Testimonial) => {
+    const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+    const testimonialUrl = `${currentOrigin}/t/${testimonial.id}`;
+    
+    navigator.clipboard.writeText(testimonialUrl).then(() => {
+      toast({
+        title: "✅ Link Copied!",
+        description: "The testimonial link has been copied to your clipboard.",
+      });
+    }).catch(() => {
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy link. Please try again.",
+        variant: "destructive",
+      });
+    });
+  };
+
   return {
     downloadTestimonialAsImage,
-    copyEmbedCode
+    copyEmbedCode,
+    copyTestimonialLink
   };
 };

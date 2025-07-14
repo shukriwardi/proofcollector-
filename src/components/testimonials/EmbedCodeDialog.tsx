@@ -27,24 +27,46 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
 
   const generateIframeCode = (testimonial: Testimonial) => {
     const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-    return `<iframe src="${currentOrigin}/embed/${testimonial.id}" width="400" height="300" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"></iframe>`;
+    // Use the testimonial viewing URL (/t/:id) instead of embed
+    return `<iframe src="${currentOrigin}/t/${testimonial.id}" width="400" height="300" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"></iframe>`;
+  };
+
+  const generateDirectLink = (testimonial: Testimonial) => {
+    const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${currentOrigin}/t/${testimonial.id}`;
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Embed Code</DialogTitle>
+          <DialogTitle>Share Testimonial</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Copy this iframe code to embed the proof on your website:
-          </p>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <code className="text-sm text-gray-800 whitespace-pre-wrap break-all">
-              {generateIframeCode(testimonial)}
-            </code>
+        <div className="space-y-6">
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Direct Link</h3>
+            <p className="text-sm text-gray-600 mb-2">
+              Share this link directly with others:
+            </p>
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <code className="text-sm text-gray-800 break-all">
+                {generateDirectLink(testimonial)}
+              </code>
+            </div>
           </div>
+          
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Embed Code</h3>
+            <p className="text-sm text-gray-600 mb-2">
+              Copy this iframe code to embed the testimonial on your website:
+            </p>
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <code className="text-sm text-gray-800 whitespace-pre-wrap break-all">
+                {generateIframeCode(testimonial)}
+              </code>
+            </div>
+          </div>
+          
           <Button
             onClick={() => onCopyEmbed(testimonial)}
             className="w-full"

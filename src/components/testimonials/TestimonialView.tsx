@@ -28,6 +28,9 @@ export const TestimonialView = () => {
   useEffect(() => {
     if (id) {
       fetchTestimonial();
+    } else {
+      setNotFound(true);
+      setLoading(false);
     }
   }, [id]);
 
@@ -48,17 +51,23 @@ export const TestimonialView = () => {
         .single();
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('Error fetching testimonial:', error);
         if (error.code === 'PGRST116') {
           setNotFound(true);
         }
         return;
       }
 
+      if (!data) {
+        console.log('No testimonial found with ID:', id);
+        setNotFound(true);
+        return;
+      }
+
       console.log('Testimonial data fetched:', data);
       setTestimonial(data);
     } catch (error) {
-      console.error('Error fetching testimonial:', error);
+      console.error('Unexpected error fetching testimonial:', error);
       setNotFound(true);
     } finally {
       setLoading(false);
@@ -97,7 +106,7 @@ export const TestimonialView = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-black mb-2">
-            {testimonial.surveys?.title || 'Testimonial'}
+            {testimonial.surveys?.title || 'Customer Testimonial'}
           </h1>
           {testimonial.surveys?.question && (
             <p className="text-lg text-gray-600">
