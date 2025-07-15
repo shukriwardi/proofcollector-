@@ -1,32 +1,21 @@
 
 import { useEffect } from 'react';
-import { generateSitemap } from '@/api/sitemap';
 
 export const SitemapHandler = () => {
   useEffect(() => {
-    const serveSitemap = async () => {
-      try {
-        const sitemapXml = await generateSitemap();
-        
-        // Clear the page and serve raw XML
-        document.open();
-        document.write(sitemapXml);
-        document.close();
-        
-        // Set proper content type
-        if (document.documentElement) {
-          document.documentElement.setAttribute('content-type', 'application/xml');
-        }
-      } catch (error) {
-        console.error('Error serving sitemap:', error);
-        document.open();
-        document.write('<error>Failed to generate sitemap</error>');
-        document.close();
-      }
-    };
-
-    serveSitemap();
+    // Redirect to the edge function that serves the actual sitemap
+    window.location.replace('https://zzfyvjlqzblvufeoqslr.supabase.co/functions/v1/sitemap');
   }, []);
 
-  return null;
+  return (
+    <div style={{ 
+      fontFamily: 'monospace', 
+      padding: '20px',
+      backgroundColor: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      <h1>Redirecting to sitemap.xml...</h1>
+      <p>If you're not redirected automatically, <a href="https://zzfyvjlqzblvufeoqslr.supabase.co/functions/v1/sitemap">click here</a>.</p>
+    </div>
+  );
 };
