@@ -18,6 +18,7 @@ import Testimonials from "./pages/Testimonials";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import TestimonialView from "./pages/TestimonialView";
+import Sitemap from "./pages/Sitemap";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const AppRoutes = () => (
     <Route path="/submit/:linkId" element={<Submit />} />
     <Route path="/link/:id" element={<Submit />} />
     <Route path="/t/:id" element={<TestimonialView />} />
+    <Route path="/sitemap.xml" element={<Sitemap />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );
