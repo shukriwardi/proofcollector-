@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, User, Star } from "lucide-react";
 import { format } from "date-fns";
+import { useSEO } from "@/hooks/useSEO";
 
 interface Testimonial {
   id: string;
@@ -25,6 +26,21 @@ export const TestimonialView = () => {
   const [testimonial, setTestimonial] = useState<Testimonial | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Dynamic SEO based on testimonial data
+  useSEO({
+    title: testimonial 
+      ? `${testimonial.name} | Testimonial — ProofCollector`
+      : 'Testimonial — ProofCollector',
+    description: testimonial 
+      ? `"${testimonial.testimonial.slice(0, 150)}${testimonial.testimonial.length > 150 ? '...' : ''}" - ${testimonial.name}`
+      : 'View this verified testimonial on ProofCollector - authentic social proof that builds trust.',
+    image: 'https://proofcollector.shacnisaas.com/og-testimonial.png',
+    url: testimonial 
+      ? `https://proofcollector.shacnisaas.com/t/${testimonial.id}`
+      : undefined,
+    type: 'article'
+  });
 
   useEffect(() => {
     const fetchTestimonial = async () => {

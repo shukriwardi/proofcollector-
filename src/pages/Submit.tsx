@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { TestimonialHeader } from "@/components/testimonials/TestimonialHeader";
 import { TestimonialSuccess } from "@/components/testimonials/TestimonialSuccess";
 import { SurveyNotFound } from "@/components/testimonials/SurveyNotFound";
 import { LoadingSpinner } from "@/components/testimonials/LoadingSpinner";
+import { useSEO } from "@/hooks/useSEO";
 
 interface Survey {
   id: string;
@@ -35,6 +37,23 @@ const Submit = () => {
   const [rateLimited, setRateLimited] = useState(false);
   const [cooldownTime, setCooldownTime] = useState<number>(0);
   const { toast } = useToast();
+
+  // Dynamic SEO based on survey data and submission state
+  useSEO({
+    title: isSubmitted 
+      ? 'Thank You! | Testimonial Submitted — ProofCollector'
+      : survey 
+        ? `Submit Testimonial: ${survey.title} | ProofCollector`
+        : 'Submit a Testimonial | ProofCollector',
+    description: isSubmitted
+      ? 'Thank you for submitting your testimonial! Your feedback helps build trust and credibility.'
+      : survey
+        ? `Share your experience about ${survey.title}. Your testimonial will help others make informed decisions.`
+        : 'Easily submit your testimonial using the secure ProofCollector form. Help build trust and credibility.',
+    image: 'https://proofcollector.shacnisaas.com/og-submit.png',
+    url: surveyId ? `https://proofcollector.shacnisaas.com/link/${surveyId}` : undefined,
+    type: 'website'
+  });
 
   useEffect(() => {
     if (surveyId) {
