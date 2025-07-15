@@ -2,4 +2,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://zzfyvjlqzblvufeoqslr.supabase.co/functions/v1/sitemap
+Sitemap: https://proofcollector.shacnisaas.com/sitemap.xml

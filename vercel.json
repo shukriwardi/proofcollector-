@@ -2,6 +2,10 @@
 {
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://zzfyvjlqzblvufeoqslr.supabase.co/functions/v1/sitemap"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
