@@ -2,7 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Copy, ExternalLink, Plus } from "lucide-react";
+import { MessageCircle, Copy, ExternalLink, Plus, Calendar, BarChart } from "lucide-react";
 import { CreateSurveyDialog } from "./CreateSurveyDialog";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { type SurveyFormData } from "@/lib/validation";
@@ -44,10 +44,14 @@ export const SurveysList = ({
 }: SurveysListProps) => {
   if (surveys.length === 0) {
     return (
-      <Card className="p-12 bg-white border-0 shadow-sm rounded-xl text-center">
-        <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-semibold text-black mb-2">No surveys yet</h3>
-        <p className="text-gray-600 mb-6">Create your first testimonial survey to get started.</p>
+      <Card className="p-16 bg-white border border-gray-100 shadow-sm rounded-2xl text-center">
+        <div className="w-20 h-20 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <MessageCircle className="h-10 w-10 text-gray-300" />
+        </div>
+        <h3 className="text-2xl font-semibold text-black mb-4">Create your first survey</h3>
+        <p className="text-gray-600 mb-8 text-lg leading-relaxed max-w-md mx-auto">
+          Start collecting testimonials by creating a survey. Share the link with your customers and watch the social proof roll in.
+        </p>
         <CreateSurveyDialog
           isOpen={isCreateDialogOpen}
           onOpenChange={onCreateDialogChange}
@@ -62,43 +66,54 @@ export const SurveysList = ({
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="space-y-6">
       {surveys.map((survey) => (
-        <Card key={survey.id} className="p-6 bg-white border-0 shadow-sm rounded-xl hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <h3 className="text-lg font-semibold text-black mb-2">{survey.title}</h3>
-              <p className="text-gray-600 mb-3">{survey.question}</p>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <span>Created: {new Date(survey.created_at).toLocaleDateString()}</span>
-                <span>•</span>
-                <span>{survey.testimonial_count || 0} testimonials</span>
+        <Card key={survey.id} className="p-8 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 rounded-2xl group">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-xl font-semibold text-black mb-2 truncate">{survey.title}</h3>
+                  <p className="text-gray-600 leading-relaxed line-clamp-2">{survey.question}</p>
+                </div>
               </div>
-              <div className="mt-3 flex items-center space-x-2">
+              
+              <div className="flex items-center space-x-6 text-sm text-gray-500 mb-4">
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>Created {new Date(survey.created_at).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <BarChart className="h-4 w-4" />
+                  <span>{survey.testimonial_count || 0} testimonials</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
                 <Input
                   value={generateSurveyUrl(survey.id)}
                   readOnly
-                  className="text-sm bg-gray-50 border-gray-200"
+                  className="text-sm bg-gray-50 border-gray-200 font-mono flex-1"
                 />
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onCopyLink(generateSurveyUrl(survey.id))}
-                  className="rounded-lg"
+                  className="rounded-lg border-gray-200 hover:bg-gray-50 px-4"
                   title="Copy link"
                 >
-                  <Copy className="h-4 w-4" />
-                  <span className="sr-only">Copy</span>
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onShareLink(generateSurveyUrl(survey.id), survey.title)}
-                  className="rounded-lg"
+                  className="rounded-lg border-gray-200 hover:bg-gray-50 px-4"
                   title="Share link"
                 >
-                  <ExternalLink className="h-4 w-4" />
-                  <span className="sr-only">Share</span>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Share
                 </Button>
               </div>
             </div>

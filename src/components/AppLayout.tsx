@@ -22,7 +22,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   useEffect(() => {
     if (user) {
-      // Fetch user profile to get username
       const fetchProfile = async () => {
         const { data, error } = await supabase
           .from('profiles')
@@ -41,7 +40,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
 
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
-    { name: "ProofCollector", href: "/testimonials", icon: MessageCircle },
+    { name: "Testimonials", href: "/testimonials", icon: MessageCircle },
     { name: "Billing", href: "/billing", icon: CreditCard },
   ];
 
@@ -64,7 +63,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
     }
   };
 
-  // Get user initials for avatar
   const getUserInitials = () => {
     if (profile?.username) {
       return profile.username.substring(0, 2).toUpperCase();
@@ -78,8 +76,8 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Fixed Navigation Header */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100 px-6 py-4 backdrop-blur-md bg-white/80">
+        <div className="flex items-center justify-between max-w-7xl mx-auto">
           {/* Logo */}
           <Link to="/dashboard" className="flex items-center space-x-2">
             <MessageCircle className="h-8 w-8 text-black" />
@@ -87,17 +85,17 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           </Link>
 
           {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-2">
             {navigation.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive(item.href)
-                      ? "bg-black text-white"
-                      : "text-gray-600 hover:text-black hover:bg-gray-100"
+                      ? "bg-black text-white shadow-sm"
+                      : "text-gray-600 hover:text-black hover:bg-gray-50"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -110,16 +108,16 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-gray-50">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-black text-white">
+                  <AvatarFallback className="bg-black text-white font-medium">
                     {getUserInitials()}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              <div className="flex items-center justify-start gap-2 p-2">
+            <DropdownMenuContent className="w-56 rounded-xl border-gray-100 shadow-lg" align="end" forceMount>
+              <div className="flex items-center justify-start gap-2 p-3">
                 <div className="flex flex-col space-y-1 leading-none">
                   <p className="font-medium text-black">
                     {profile?.username || "User"}
@@ -127,16 +125,16 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
                   <p className="text-xs text-gray-600">{user?.email}</p>
                 </div>
               </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
+              <DropdownMenuSeparator className="bg-gray-100" />
+              <DropdownMenuItem asChild className="rounded-lg mx-1">
                 <Link to="/settings" className="flex items-center">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-gray-100" />
               <DropdownMenuItem 
-                className="text-red-600 focus:text-red-600 cursor-pointer"
+                className="text-red-600 focus:text-red-600 cursor-pointer rounded-lg mx-1"
                 onClick={handleSignOut}
               >
                 <LogOut className="mr-2 h-4 w-4" />
@@ -147,7 +145,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         </div>
       </nav>
 
-      {/* Main Content with top padding to account for fixed nav */}
+      {/* Main Content */}
       <main className="flex-1 px-6 py-8 pt-24">
         <div className="max-w-7xl mx-auto">
           {children}
