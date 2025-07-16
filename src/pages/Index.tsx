@@ -13,7 +13,8 @@ const Index = () => {
           <MessageCircle className="h-8 w-8 text-black" />
           <span className="text-xl font-semibold text-black">ProofCollector</span>
         </RouterLink>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-6">
+          <a href="#" className="text-gray-600 hover:text-black transition-colors">Pricing</a>
           <RouterLink to="/login">
             <Button variant="ghost" className="text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg px-4 py-2">
               Sign in
@@ -27,25 +28,169 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="px-6 lg:px-8 py-24 pt-32 text-center max-w-5xl mx-auto">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-5xl lg:text-6xl font-bold text-black mb-8 leading-tight tracking-tight">
-            Collect testimonials that actually
-            <span className="block text-gray-600">convert customers</span>
-          </h1>
-          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
-            The easiest way to collect, manage, and showcase customer testimonials. 
-            Build trust and grow your business with authentic social proof.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <RouterLink to="/signup">
-              <Button className="bg-black text-white hover:bg-gray-800 rounded-lg px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200">
-                Start collecting testimonials
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </RouterLink>
-            <p className="text-sm text-gray-500">Free plan available • No credit card required</p>
+      {/* Hero Section - Inspired by Senja */}
+      <section className="px-6 lg:px-8 py-24 pt-32">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Left side - Content */}
+            <div>
+              <h1 className="text-5xl lg:text-6xl font-bold text-black mb-8 leading-tight tracking-tight">
+                "The easiest and most effective testimonial tool"
+              </h1>
+              
+              {/* Founder testimonial */}
+              <div className="flex items-start space-x-4 mb-8">
+                <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-semibold text-sm">PC</span>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-black">ProofCollector Founder</h3>
+                  <p className="text-gray-600 text-sm">Creator</p>
+                </div>
+              </div>
+
+              <blockquote className="text-xl text-gray-700 mb-8 leading-relaxed">
+                "Here at ProofCollector, we made it easy to collect and share testimonials for a reasonable price. The simple process helps you showcase authentic customer feedback without any hassle."
+              </blockquote>
+
+              {/* Key benefits */}
+              <div className="space-y-4 mb-8">
+                <div className="flex items-center space-x-3">
+                  <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-gray-700">Get testimonials in just 4 simple steps</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-gray-700">Share via any communication app or email</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-5 h-5 bg-black rounded-full flex items-center justify-center flex-shrink-0">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                  <span className="text-gray-700">Download images or embed on your website</span>
+                </div>
+              </div>
+
+              <RouterLink to="/signup">
+                <Button className="bg-black text-white hover:bg-gray-800 rounded-lg px-8 py-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                  Start for free today
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </RouterLink>
+
+              {/* Social proof */}
+              <div className="flex items-center space-x-4 mt-6">
+                <div className="flex -space-x-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="w-8 h-8 bg-gray-200 rounded-full border-2 border-white flex items-center justify-center">
+                      <span className="text-xs text-gray-600">★</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center space-x-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <span className="text-sm text-gray-600">loved by growing businesses</span>
+              </div>
+            </div>
+
+            {/* Right side - ProofCollector Dashboard Preview */}
+            <div className="relative">
+              <Card className="p-6 bg-white border border-gray-200 shadow-xl rounded-2xl overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold text-black">Your Testimonials</h3>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm bg-gray-100 px-3 py-1 rounded-full">363</span>
+                    <Button size="sm" className="bg-purple-600 text-white rounded-lg">
+                      Invite a customer
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex items-center space-x-6 mb-6 border-b border-gray-200">
+                  <button className="flex items-center space-x-2 pb-2 border-b-2 border-black">
+                    <span className="text-sm">📋</span>
+                    <span className="text-sm font-medium">All</span>
+                  </button>
+                  <button className="flex items-center space-x-2 pb-2 text-gray-500">
+                    <span className="text-sm">💙</span>
+                    <span className="text-sm">Collected</span>
+                  </button>
+                  <button className="flex items-center space-x-2 pb-2 text-gray-500">
+                    <span className="text-sm">📧</span>
+                    <span className="text-sm">Invites</span>
+                  </button>
+                </div>
+
+                {/* Testimonial Cards */}
+                <div className="space-y-4">
+                  {/* First testimonial */}
+                  <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="font-medium text-sm">Justin Moore</span>
+                        <div className="flex">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className="h-3 w-3 text-yellow-400 fill-current" />
+                          ))}
+                        </div>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Approved</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        "My name is Justin Moore. I am the founder of a company called Creator Wizard, where we teach creators how to find and negotiate their dream..."
+                      </p>
+                      <div className="text-xs text-gray-500">Creator • Course Creator • Free account</div>
+                    </div>
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0"></div>
+                  </div>
+
+                  {/* Second testimonial */}
+                  <div className="flex items-start space-x-4 p-4 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 bg-gray-300 rounded-full flex-shrink-0"></div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="font-medium text-sm">Chris Nguyen</span>
+                        <div className="flex">
+                          {[...Array(5)].map((_, i) => (
+                            <Star key={i} className="h-3 w-3 text-yellow-400 fill-current" />
+                          ))}
+                        </div>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Approved</span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        "Today I met out of Senja. Unique design ideas and get more sales this month with testimonials..."
+                      </p>
+                      <div className="text-xs text-gray-500">Creator • Course Creator • Free account</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preview of export options */}
+                <div className="mt-6 grid grid-cols-3 gap-3">
+                  <Card className="p-3 bg-black text-white rounded-lg text-center">
+                    <Image className="h-4 w-4 mx-auto mb-1" />
+                    <span className="text-xs">Image</span>
+                  </Card>
+                  <Card className="p-3 bg-blue-50 text-blue-600 rounded-lg text-center">
+                    <span className="text-xs font-mono">&lt;/&gt;</span>
+                    <div className="text-xs">Embed</div>
+                  </Card>
+                  <Card className="p-3 bg-green-50 text-green-600 rounded-lg text-center">
+                    <Share2 className="h-4 w-4 mx-auto mb-1" />
+                    <span className="text-xs">Share</span>
+                  </Card>
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       </section>
@@ -122,29 +267,6 @@ const Index = () => {
               Start collecting & sharing testimonials
               <span className="block text-black">in a few easy steps</span>
             </h3>
-            
-            {/* Featured Testimonial Card */}
-            <div className="mt-12 flex justify-center">
-              <Card className="p-8 bg-gradient-to-br from-black to-gray-800 text-white rounded-3xl shadow-2xl max-w-lg transform rotate-2 hover:rotate-0 transition-transform duration-300">
-                <div className="flex justify-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <blockquote className="text-lg mb-6 leading-relaxed">
-                  "Here at ProofCollector, we made it easy to collect and share testimonials for a reasonable price. The simple process helps you showcase authentic customer feedback without any hassle."
-                </blockquote>
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-semibold">PC</span>
-                  </div>
-                  <div className="text-left">
-                    <div className="font-semibold">ProofCollector Team</div>
-                    <div className="text-gray-300 text-sm">Founder</div>
-                  </div>
-                </div>
-              </Card>
-            </div>
           </div>
 
           {/* 4-Step Process */}
