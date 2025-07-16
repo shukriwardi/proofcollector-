@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Star, MessageCircle, Link, BarChart3, Mail, ArrowRight, Check, Settings, Send, Database, Share2, Image } from "lucide-react";
+import { Star, MessageCircle, Link, BarChart3, Mail, ArrowRight, Check, Settings, Send, Database, Share2, Image, Clock, UserPlus, ExternalLink, Zap } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 
 const Index = () => {
@@ -50,8 +50,71 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Get Started in Under 5 Minutes Section */}
+      <section className="px-6 lg:px-8 py-16 bg-gray-50">
+        <div className="max-w-5xl mx-auto text-center">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <Clock className="h-6 w-6 text-gray-600" />
+            <span className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Quick Setup</span>
+          </div>
+          <h2 className="text-3xl lg:text-4xl font-bold text-black mb-6">
+            Collect testimonials in under 5 minutes
+          </h2>
+          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
+            Get your testimonial collection system up and running in minutes, not hours.
+          </p>
+          
+          {/* 4-Step Quick Timeline */}
+          <div className="grid md:grid-cols-4 gap-8 lg:gap-12">
+            {/* Step 1: Sign up */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <UserPlus className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-black mb-2">1. Sign up</h3>
+              <p className="text-gray-600 text-sm">
+                Create your free account in seconds
+              </p>
+            </div>
+
+            {/* Step 2: Create your unique link */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <ExternalLink className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-black mb-2">2. Create your unique link</h3>
+              <p className="text-gray-600 text-sm">
+                Generate a custom survey link instantly
+              </p>
+            </div>
+
+            {/* Step 3: Share it with customers */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Send className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-black mb-2">3. Share it with customers</h3>
+              <p className="text-gray-600 text-sm">
+                Send via email, DM, or any platform
+              </p>
+            </div>
+
+            {/* Step 4: Get testimonials instantly */}
+            <div className="text-center">
+              <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Zap className="h-8 w-8 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold text-black mb-2">4. Get testimonials instantly</h3>
+              <p className="text-gray-600 text-sm">
+                Watch authentic reviews come in
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* How it Works Section */}
-      <section className="px-6 lg:px-8 py-20 bg-gray-50">
+      <section className="px-6 lg:px-8 py-20">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
             <h2 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-4">How it works</h2>
@@ -69,8 +132,7 @@ const Index = () => {
                   ))}
                 </div>
                 <blockquote className="text-lg mb-6 leading-relaxed">
-                  "ProofCollector made it easy to collect and share testimonials for a reasonable price. 
-                  The simple process helped me showcase authentic customer feedback without any hassle."
+                  "Here at ProofCollector, we made it easy to collect and share testimonials for a reasonable price. The simple process helps you showcase authentic customer feedback without any hassle."
                 </blockquote>
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center">
@@ -132,11 +194,11 @@ const Index = () => {
                       <Mail className="h-4 w-4 text-blue-600" />
                       <span className="text-sm font-medium text-blue-800">Email</span>
                     </div>
-                    <div className="text-xs text-blue-600">https://app.com/survey/abc123</div>
+                    <div className="text-xs text-blue-600 break-all">https://app.com/survey/abc123</div>
                   </Card>
                   <div className="flex space-x-2">
-                    <div className="flex-1 bg-green-100 rounded-lg p-2 text-xs text-green-800">DM</div>
-                    <div className="flex-1 bg-purple-100 rounded-lg p-2 text-xs text-purple-800">Slack</div>
+                    <div className="flex-1 bg-green-100 rounded-lg p-2 text-xs text-green-800 text-center">DM</div>
+                    <div className="flex-1 bg-purple-100 rounded-lg p-2 text-xs text-purple-800 text-center">Slack</div>
                   </div>
                 </div>
               </Card>
@@ -155,8 +217,8 @@ const Index = () => {
                 <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <Database className="h-8 w-8 text-white" />
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-left">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-left mb-2">
                     <span className="text-sm text-gray-600">Testimonials</span>
                     <div className="flex items-center space-x-1">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -164,10 +226,24 @@ const Index = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="h-2 bg-black rounded-full"></div>
-                    <div className="h-2 bg-gray-300 rounded-full"></div>
-                    <div className="h-2 bg-black rounded-full w-3/4"></div>
-                    <div className="h-2 bg-gray-300 rounded-full w-1/2"></div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                        <span className="text-xs text-gray-600">★</span>
+                      </div>
+                      <div className="h-2 bg-black rounded-full flex-1"></div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                        <span className="text-xs text-gray-600">★</span>
+                      </div>
+                      <div className="h-2 bg-gray-300 rounded-full flex-1"></div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                        <span className="text-xs text-gray-600">★</span>
+                      </div>
+                      <div className="h-2 bg-black rounded-full w-3/4"></div>
+                    </div>
                   </div>
                 </div>
               </Card>
