@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Star, MessageCircle, Link, BarChart3, Mail, ArrowRight, Check } from "lucide-react";
+import { Star, MessageCircle, Link, BarChart3, Mail, ArrowRight, Check, Settings, Send, Database, Share2, Image } from "lucide-react";
 import { Link as RouterLink } from "react-router-dom";
 
 const Index = () => {
@@ -69,16 +69,16 @@ const Index = () => {
                   ))}
                 </div>
                 <blockquote className="text-lg mb-6 leading-relaxed">
-                  "ProofCollector made it incredibly easy to collect and showcase testimonials. 
-                  The clean interface and simple process helped us build trust with potential customers."
+                  "ProofCollector made it easy to collect and share testimonials for a reasonable price. 
+                  The simple process helped me showcase authentic customer feedback without any hassle."
                 </blockquote>
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-semibold">JD</span>
+                    <span className="text-white font-semibold">PC</span>
                   </div>
                   <div className="text-left">
-                    <div className="font-semibold">Jordan Smith</div>
-                    <div className="text-gray-300 text-sm">startup-founder.com</div>
+                    <div className="font-semibold">ProofCollector Team</div>
+                    <div className="text-gray-300 text-sm">Founder</div>
                   </div>
                 </div>
               </Card>
@@ -87,110 +87,123 @@ const Index = () => {
 
           {/* 4-Step Process */}
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-            {/* Step 1: Create */}
+            {/* Step 1: Create Customizable Survey */}
             <div className="text-center">
               <Card className="p-8 bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 rounded-3xl mb-6 min-h-[280px] flex flex-col justify-center relative">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
                   1
                 </div>
                 <div className="w-16 h-16 bg-black rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Link className="h-8 w-8 text-white" />
+                  <Settings className="h-8 w-8 text-white" />
                 </div>
                 <div className="space-y-3">
-                  <div className="h-3 bg-gray-200 rounded-full"></div>
-                  <div className="h-3 bg-gray-200 rounded-full w-3/4 mx-auto"></div>
-                  <div className="h-3 bg-gray-200 rounded-full w-1/2 mx-auto"></div>
+                  <div className="text-left">
+                    <div className="text-sm text-gray-500 mb-2">Survey Title</div>
+                    <div className="h-3 bg-gray-200 rounded-full"></div>
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm text-gray-500 mb-2">Question</div>
+                    <div className="h-3 bg-gray-200 rounded-full w-3/4"></div>
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm text-gray-500 mb-2">Settings</div>
+                    <div className="h-3 bg-gray-200 rounded-full w-1/2"></div>
+                  </div>
                 </div>
               </Card>
-              <h3 className="text-xl font-semibold text-black mb-3">Create</h3>
+              <h3 className="text-xl font-semibold text-black mb-3">Create Customizable Survey</h3>
               <p className="text-gray-600 leading-relaxed">
-                Set up your testimonial collection forms in minutes. Customize questions and design to match your brand perfectly.
+                Set up your testimonial collection survey with custom questions and design to match your brand perfectly.
               </p>
             </div>
 
-            {/* Step 2: Collect */}
+            {/* Step 2: Send as Link */}
             <div className="text-center">
               <Card className="p-8 bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 rounded-3xl mb-6 min-h-[280px] flex flex-col justify-center relative">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
                   2
                 </div>
-                <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <MessageCircle className="h-8 w-8 text-white" />
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Send className="h-8 w-8 text-white" />
                 </div>
-                <Card className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-                  <div className="flex items-center space-x-2 text-sm">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <span className="text-gray-700 font-medium">Tochify</span>
+                <div className="space-y-3">
+                  <Card className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-left">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Mail className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">Email</span>
+                    </div>
+                    <div className="text-xs text-blue-600">https://app.com/survey/abc123</div>
+                  </Card>
+                  <div className="flex space-x-2">
+                    <div className="flex-1 bg-green-100 rounded-lg p-2 text-xs text-green-800">DM</div>
+                    <div className="flex-1 bg-purple-100 rounded-lg p-2 text-xs text-purple-800">Slack</div>
                   </div>
-                  <p className="text-gray-600 text-sm mt-2">How has your experience been with us?</p>
-                  <Button className="w-full mt-3 bg-black text-white text-xs py-2 rounded-lg">
-                    Submit testimonial
-                  </Button>
-                </Card>
+                </div>
               </Card>
-              <h3 className="text-xl font-semibold text-black mb-3">Collect</h3>
+              <h3 className="text-xl font-semibold text-black mb-3">Send as Link</h3>
               <p className="text-gray-600 leading-relaxed">
-                Share your custom links with customers. They submit testimonials through beautiful, mobile-friendly forms with no signup required.
+                Share your survey link via email, DMs, or any communication app. Customers can submit testimonials with no signup required.
               </p>
             </div>
 
-            {/* Step 3: Manage & Analyze */}
+            {/* Step 3: Collect in Dashboard */}
             <div className="text-center">
               <Card className="p-8 bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 rounded-3xl mb-6 min-h-[280px] flex flex-col justify-center relative">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
                   3
                 </div>
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <BarChart3 className="h-8 w-8 text-white" />
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Database className="h-8 w-8 text-white" />
                 </div>
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between text-left">
                     <span className="text-sm text-gray-600">Testimonials</span>
                     <div className="flex items-center space-x-1">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-xs text-gray-500">Filter</span>
+                      <span className="text-xs text-gray-500">24 new</span>
                     </div>
                   </div>
                   <div className="space-y-2">
                     <div className="h-2 bg-black rounded-full"></div>
                     <div className="h-2 bg-gray-300 rounded-full"></div>
                     <div className="h-2 bg-black rounded-full w-3/4"></div>
+                    <div className="h-2 bg-gray-300 rounded-full w-1/2"></div>
                   </div>
                 </div>
               </Card>
-              <h3 className="text-xl font-semibold text-black mb-3">Manage & Analyze</h3>
+              <h3 className="text-xl font-semibold text-black mb-3">Collect in Dashboard</h3>
               <p className="text-gray-600 leading-relaxed">
-                Organize testimonials in your dashboard. Filter, sort, and manage all your social proof from one central location.
+                All testimonials are automatically organized in your dashboard. Filter, sort, and manage your social proof from one place.
               </p>
             </div>
 
-            {/* Step 4: Share */}
+            {/* Step 4: Copy as Image or Embed */}
             <div className="text-center">
               <Card className="p-8 bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 rounded-3xl mb-6 min-h-[280px] flex flex-col justify-center relative">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-black text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
                   4
                 </div>
-                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-teal-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Star className="h-8 w-8 text-white" />
+                <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <Share2 className="h-8 w-8 text-white" />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <Card className="p-2 bg-black text-white rounded-lg">
-                    <div className="text-xs">Widget</div>
+                  <Card className="p-2 bg-black text-white rounded-lg flex items-center justify-center">
+                    <Image className="h-4 w-4" />
                   </Card>
-                  <Card className="p-2 bg-gray-100 rounded-lg">
-                    <Mail className="h-4 w-4 text-gray-600" />
+                  <Card className="p-2 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <span className="text-xs font-mono text-gray-600">&lt;/&gt;</span>
                   </Card>
                   <Card className="p-2 bg-blue-50 rounded-lg flex items-center justify-center">
                     <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                   </Card>
-                  <Card className="p-2 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <div className="text-xs text-gray-600">FB</div>
+                  <Card className="p-2 bg-green-50 rounded-lg flex items-center justify-center">
+                    <div className="text-xs text-green-600 font-bold">IG</div>
                   </Card>
                 </div>
               </Card>
-              <h3 className="text-xl font-semibold text-black mb-3">Share</h3>
+              <h3 className="text-xl font-semibold text-black mb-3">Copy as Image or Embed</h3>
               <p className="text-gray-600 leading-relaxed">
-                Display testimonials anywhere — embed widgets on your website, share on social media, or export as images for marketing.
+                Export testimonials as images for marketing or embed them directly on your website with our simple embed code.
               </p>
             </div>
           </div>
