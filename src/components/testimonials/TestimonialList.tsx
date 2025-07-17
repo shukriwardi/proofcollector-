@@ -41,8 +41,8 @@ export const TestimonialList = ({
 
   if (filteredTestimonials.length === 0) {
     return (
-      <Card className="p-12 bg-white border-0 shadow-sm rounded-xl text-center">
-        <p className="text-gray-500">
+      <Card className="p-12 bg-gray-900 border border-gray-800 shadow-lg rounded-xl text-center">
+        <p className="text-gray-400">
           {searchTerm ? "No proof found matching your search." : "No social proof yet. Share your survey links to start collecting proof!"}
         </p>
       </Card>
