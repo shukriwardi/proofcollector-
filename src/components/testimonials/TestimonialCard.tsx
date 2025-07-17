@@ -21,7 +21,7 @@ interface TestimonialCardProps {
   testimonial: Testimonial;
   onView: (testimonial: Testimonial) => void;
   onEmbed: (testimonial: Testimonial) => void;
-  onDownload: (testimonial: Testimonial) => void;
+  onDownload: (testimonial: Testimonial, theme?: 'light' | 'dark') => void;
   onDelete: (testimonialId: string) => void;
 }
 
