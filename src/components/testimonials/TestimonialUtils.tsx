@@ -1,5 +1,4 @@
-
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface Testimonial {
   id: string;
@@ -170,7 +169,7 @@ export const useTestimonialUtils = () => {
       border: 1px solid #e5e7eb;
     `;
 
-    const embedCode = `<div style="max-width: 500px; margin: 0 auto; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
+    const embedCode = `<div style="width: 100%; max-width: 600px; margin: 0 auto; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
   <iframe 
     src="${currentOrigin}/t/${testimonial.id}?theme=${theme}" 
     width="100%" 
