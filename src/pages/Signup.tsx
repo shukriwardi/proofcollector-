@@ -12,6 +12,7 @@ import { useSEO } from "@/hooks/useSEO";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -46,10 +47,19 @@ const Signup = () => {
       return;
     }
 
+    if (username.length < 3) {
+      toast({
+        title: "Username too short",
+        description: "Username must be at least 3 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error } = await signUp(email, password);
+      const { error } = await signUp(email, password, username);
       
       if (error) {
         toast({
@@ -110,6 +120,20 @@ const Signup = () => {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="username" className="text-gray-300">Username</Label>
+                <Input
+                  id="username"
+                  name="username"
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Choose a username"
+                  minLength={3}
+                  className="bg-gray-800 border-gray-700 text-white focus:border-purple-500 focus:ring-purple-500"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="password" className="text-gray-300">Password</Label>
                 <Input
                   id="password"
@@ -138,7 +162,7 @@ const Signup = () => {
                 />
               </div>
               <div className="text-sm text-gray-400">
-                Password must be at least 8 characters long.
+                Password must be at least 8 characters long. Username must be at least 3 characters long.
               </div>
               <Button 
                 type="submit" 
