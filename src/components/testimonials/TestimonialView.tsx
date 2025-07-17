@@ -96,10 +96,10 @@ export const TestimonialView = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading social proof...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading social proof...</p>
         </div>
       </div>
     );
@@ -107,15 +107,15 @@ export const TestimonialView = () => {
 
   if (error || !testimonial) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-6xl mb-4">😔</div>
-          <h1 className="text-2xl font-bold mb-2">Social Proof Not Found</h1>
-          <p className="text-gray-600 mb-4">
+          <h1 className="text-2xl font-bold mb-2 text-white">Social Proof Not Found</h1>
+          <p className="text-gray-400 mb-4">
             {error || "The social proof you're looking for doesn't exist or has been removed."}
           </p>
           <p className="text-sm text-gray-500">
-            Powered by <span className="font-semibold">ProofCollector</span>
+            Powered by <span className="font-semibold text-purple-400">ProofCollector</span>
           </p>
         </div>
       </div>
@@ -130,16 +130,16 @@ export const TestimonialView = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-black py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        <Card className="shadow-lg">
+        <Card className="shadow-2xl bg-gray-900 border-gray-800 rounded-xl">
           <CardContent className="p-8">
             {/* Header */}
             <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-black mb-2">
+              <h1 className="text-2xl font-bold text-white mb-2">
                 {testimonial.survey.title}
               </h1>
-              <p className="text-gray-600">
+              <p className="text-gray-400">
                 {testimonial.survey.question}
               </p>
             </div>
@@ -153,7 +153,7 @@ export const TestimonialView = () => {
 
             {/* Testimonial Content */}
             <div className="mb-8">
-              <blockquote className="text-lg text-gray-800 leading-relaxed italic text-center">
+              <blockquote className="text-lg text-white leading-relaxed italic text-center">
                 "{testimonial.testimonial}"
               </blockquote>
             </div>
@@ -162,14 +162,14 @@ export const TestimonialView = () => {
             <div className="flex items-center justify-center space-x-4 mb-6">
               <div className="flex items-center space-x-2">
                 <User className="h-4 w-4 text-gray-500" />
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-white">
                   {testimonial.name}
                 </span>
               </div>
               
               <div className="flex items-center space-x-2">
                 <Calendar className="h-4 w-4 text-gray-500" />
-                <span className="text-gray-600">
+                <span className="text-gray-400">
                   {format(new Date(testimonial.created_at), "MMM d, yyyy")}
                 </span>
               </div>
@@ -177,15 +177,15 @@ export const TestimonialView = () => {
 
             {/* Badge */}
             <div className="text-center">
-              <Badge variant="secondary" className="bg-black text-white">
-                Verified Social Proof
+              <Badge variant="secondary" className="bg-green-600 text-white border-green-500">
+                ✓ Verified Social Proof
               </Badge>
             </div>
 
             {/* Footer */}
-            <div className="text-center mt-8 pt-6 border-t border-gray-200">
+            <div className="text-center mt-8 pt-6 border-t border-gray-800">
               <p className="text-sm text-gray-500">
-                Powered by <span className="font-semibold text-black">ProofCollector</span>
+                Powered by <span className="font-semibold text-purple-400">ProofCollector</span>
               </p>
             </div>
           </CardContent>

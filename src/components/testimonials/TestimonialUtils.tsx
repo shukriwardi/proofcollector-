@@ -26,34 +26,49 @@ export const useTestimonialUtils = () => {
       canvas.width = 800;
       canvas.height = 600;
 
-      ctx.fillStyle = '#ffffff';
+      // Dark background matching website theme
+      ctx.fillStyle = '#0a0a0a';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.strokeStyle = '#e5e7eb';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+      // Rounded container with shadow effect
+      const containerPadding = 40;
+      const containerWidth = canvas.width - (containerPadding * 2);
+      const containerHeight = canvas.height - (containerPadding * 2);
+      
+      // Draw rounded container background
+      ctx.fillStyle = '#111111';
+      ctx.beginPath();
+      ctx.roundRect(containerPadding, containerPadding, containerWidth, containerHeight, 12);
+      ctx.fill();
 
-      ctx.fillStyle = '#374151';
-      ctx.font = '24px Arial, sans-serif';
+      // Draw subtle border
+      ctx.strokeStyle = '#333333';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(containerPadding, containerPadding, containerWidth, containerHeight, 12);
+      ctx.stroke();
+
+      // Header with purple accent
+      ctx.fillStyle = '#8e44ad';
+      ctx.font = 'bold 28px Inter, Arial, sans-serif';
       ctx.textAlign = 'center';
+      ctx.fillText('ProofCollector', canvas.width / 2, 100);
 
-      ctx.fillStyle = '#111827';
-      ctx.font = 'bold 32px Arial, sans-serif';
-      ctx.fillText('Social Proof', canvas.width / 2, 80);
+      // Survey title
+      ctx.fillStyle = '#e0e0e0';
+      ctx.font = '20px Inter, Arial, sans-serif';
+      ctx.fillText(testimonial.survey.title, canvas.width / 2, 140);
 
-      ctx.fillStyle = '#6b7280';
-      ctx.font = '18px Arial, sans-serif';
-      ctx.fillText(`From: ${testimonial.survey.title}`, canvas.width / 2, 120);
-
-      ctx.fillStyle = '#374151';
-      ctx.font = '20px Arial, sans-serif';
+      // Testimonial content with proper text wrapping
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '18px Inter, Arial, sans-serif';
       ctx.textAlign = 'left';
       
-      const maxWidth = canvas.width - 120;
-      const lineHeight = 30;
+      const maxWidth = containerWidth - 80;
+      const lineHeight = 28;
       const words = `"${testimonial.testimonial}"`.split(' ');
       let line = '';
-      let y = 180;
+      let y = 200;
 
       for (let n = 0; n < words.length; n++) {
         const testLine = line + words[n] + ' ';
@@ -61,24 +76,31 @@ export const useTestimonialUtils = () => {
         const testWidth = metrics.width;
         
         if (testWidth > maxWidth && n > 0) {
-          ctx.fillText(line, 60, y);
+          ctx.fillText(line, 80, y);
           line = words[n] + ' ';
           y += lineHeight;
         } else {
           line = testLine;
         }
       }
-      ctx.fillText(line, 60, y);
+      ctx.fillText(line, 80, y);
 
-      ctx.fillStyle = '#111827';
-      ctx.font = 'bold 22px Arial, sans-serif';
+      // Author name with green accent
+      ctx.fillStyle = '#2ecc71';
+      ctx.font = 'bold 20px Inter, Arial, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(`- ${testimonial.name}`, canvas.width / 2, canvas.height - 80);
+      ctx.fillText(`— ${testimonial.name}`, canvas.width / 2, y + 60);
 
-      ctx.fillStyle = '#9ca3af';
-      ctx.font = '16px Arial, sans-serif';
+      // Date
+      ctx.fillStyle = '#888888';
+      ctx.font = '16px Inter, Arial, sans-serif';
       const date = new Date(testimonial.created_at).toLocaleDateString();
-      ctx.fillText(date, canvas.width / 2, canvas.height - 50);
+      ctx.fillText(date, canvas.width / 2, y + 90);
+
+      // Verified badge with green checkmark
+      ctx.fillStyle = '#2ecc71';
+      ctx.font = 'bold 14px Inter, Arial, sans-serif';
+      ctx.fillText('✓ Verified Testimonial', canvas.width / 2, canvas.height - 60);
 
       canvas.toBlob((blob) => {
         if (!blob) throw new Error('Failed to create image');
@@ -110,13 +132,28 @@ export const useTestimonialUtils = () => {
 
   const copyEmbedCode = (testimonial: Testimonial) => {
     const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-    // Use the testimonial viewing URL (/t/:id) for embed
-    const embedCode = `<iframe src="${currentOrigin}/t/${testimonial.id}" width="400" height="300" frameborder="0" style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);"></iframe>`;
+    // Enhanced embed code with dark theme styling
+    const embedCode = `<div style="max-width: 500px; margin: 0 auto; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
+  <iframe 
+    src="${currentOrigin}/t/${testimonial.id}" 
+    width="100%" 
+    height="400" 
+    frameborder="0" 
+    style="
+      border-radius: 12px; 
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      background: #0a0a0a;
+      border: 1px solid #333333;
+    "
+    loading="lazy"
+    title="Testimonial by ${testimonial.name}"
+  ></iframe>
+</div>`;
     
     navigator.clipboard.writeText(embedCode).then(() => {
       toast({
         title: "✅ Embed Code Copied!",
-        description: "The iframe embed code has been copied to your clipboard.",
+        description: "The dark-themed iframe embed code has been copied to your clipboard.",
       });
     }).catch(() => {
       toast({
