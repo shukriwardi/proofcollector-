@@ -109,20 +109,20 @@ const Testimonials = () => {
 
   if (loading) {
     return (
-      <AppLayout>
+      <div className="min-h-screen bg-black">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading proof collection...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Loading proof collection...</p>
           </div>
         </div>
-      </AppLayout>
+      </div>
     );
   }
 
   return (
-    <AppLayout>
-      <div className="space-y-8">
+    <div className="min-h-screen bg-black">
+      <div className="space-y-8 p-6 lg:p-8">
         <TestimonialFilters 
           searchTerm={searchTerm} 
           onSearchChange={setSearchTerm} 
@@ -155,7 +155,7 @@ const Testimonials = () => {
           onCopyEmbed={copyEmbedCode}
         />
       </div>
-    </AppLayout>
+    </div>
   );
 };
 

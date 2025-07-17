@@ -50,7 +50,7 @@ const Index = () => {
               </div>
 
               <blockquote className="text-xl text-gray-700 mb-8 leading-relaxed">
-                "Here at ProofCollector, we made it easy to collect and share testimonials for a reasonable price. The simple process helps you showcase authentic customer feedback without any hassle."
+                "Here at ProofCollector, we created the simplest way to collect and share powerful testimonials. With just 4 easy steps, you can have a steady flow of authentic customer feedback without any technical hassle - all at a fair price that won't break your budget."
               </blockquote>
 
               {/* Key benefits */}
@@ -82,21 +82,9 @@ const Index = () => {
                 </Button>
               </RouterLink>
 
-              {/* Social proof */}
+              {/* Social proof - simplified without fake icons */}
               <div className="flex items-center space-x-4 mt-6">
-                <div className="flex -space-x-2">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="w-8 h-8 bg-gray-200 rounded-full border-2 border-white flex items-center justify-center">
-                      <span className="text-xs text-gray-600">★</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center space-x-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <span className="text-sm text-gray-600">Start collecting powerful testimonials today</span>
+                <span className="text-sm text-gray-600">Start collecting powerful testimonials today - just in 5 minutes you can already get started</span>
               </div>
             </div>
 
@@ -216,16 +204,18 @@ const Index = () => {
                   <Send className="h-8 w-8 text-white" />
                 </div>
                 <div className="space-y-3">
-                  <Card className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-left">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Mail className="h-4 w-4 text-blue-600" />
+                  <Card className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-left">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Mail className="h-5 w-5 text-blue-600" />
                       <span className="text-sm font-medium text-blue-800">Email</span>
                     </div>
-                    <div className="text-xs text-blue-600 break-all">https://proofcollector.com/survey/abc123</div>
+                    <div className="text-xs text-blue-600 font-mono break-all bg-white p-2 rounded border">
+                      https://proofcollector.com/survey/abc123
+                    </div>
                   </Card>
                   <div className="flex space-x-2">
-                    <div className="flex-1 bg-green-100 rounded-lg p-2 text-xs text-green-800 text-center">DM</div>
-                    <div className="flex-1 bg-purple-100 rounded-lg p-2 text-xs text-purple-800 text-center">Slack</div>
+                    <div className="flex-1 bg-green-100 rounded-lg p-3 text-xs text-green-800 text-center font-medium">WhatsApp</div>
+                    <div className="flex-1 bg-purple-100 rounded-lg p-3 text-xs text-purple-800 text-center font-medium">Slack</div>
                   </div>
                 </div>
               </Card>
@@ -415,7 +405,7 @@ const Index = () => {
             Start collecting testimonials today
           </h2>
           <p className="text-xl text-gray-300 mb-12 max-w-2xl mx-auto leading-relaxed">
-            Join hundreds of businesses already using ProofCollector to build trust and grow faster.
+            Grow your reach through word of mouth without breaking the bank.
           </p>
           <RouterLink to="/signup">
             <Button className="bg-white text-black hover:bg-gray-100 rounded-lg px-10 py-4 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200">

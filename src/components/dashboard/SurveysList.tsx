@@ -44,12 +44,12 @@ export const SurveysList = ({
 }: SurveysListProps) => {
   if (surveys.length === 0) {
     return (
-      <Card className="p-16 bg-white border border-gray-100 shadow-sm rounded-2xl text-center">
-        <div className="w-20 h-20 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-          <MessageCircle className="h-10 w-10 text-gray-300" />
+      <Card className="p-16 bg-gray-900 border border-gray-800 shadow-lg rounded-2xl text-center">
+        <div className="w-20 h-20 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <MessageCircle className="h-10 w-10 text-purple-500" />
         </div>
-        <h3 className="text-2xl font-semibold text-black mb-4">Create your first survey</h3>
-        <p className="text-gray-600 mb-8 text-lg leading-relaxed max-w-md mx-auto">
+        <h3 className="text-2xl font-semibold text-white mb-4">Create your first survey</h3>
+        <p className="text-gray-400 mb-8 text-lg leading-relaxed max-w-md mx-auto">
           Start collecting testimonials by creating a survey. Share the link with your customers and watch the social proof roll in.
         </p>
         <CreateSurveyDialog
@@ -68,13 +68,13 @@ export const SurveysList = ({
   return (
     <div className="space-y-6">
       {surveys.map((survey) => (
-        <Card key={survey.id} className="p-8 bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 rounded-2xl group">
+        <Card key={survey.id} className="p-8 bg-gray-900 border border-gray-800 shadow-lg hover:shadow-purple-500/20 hover:shadow-xl transition-all duration-300 rounded-2xl group hover:border-purple-500/50">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-xl font-semibold text-black mb-2 truncate">{survey.title}</h3>
-                  <p className="text-gray-600 leading-relaxed line-clamp-2">{survey.question}</p>
+                  <h3 className="text-xl font-semibold text-white mb-2 truncate">{survey.title}</h3>
+                  <p className="text-gray-400 leading-relaxed line-clamp-2">{survey.question}</p>
                 </div>
               </div>
               
@@ -93,13 +93,13 @@ export const SurveysList = ({
                 <Input
                   value={generateSurveyUrl(survey.id)}
                   readOnly
-                  className="text-sm bg-gray-50 border-gray-200 font-mono flex-1"
+                  className="text-sm bg-gray-800 border-gray-700 font-mono flex-1 text-gray-300 focus:border-purple-500 focus:ring-purple-500"
                 />
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onCopyLink(generateSurveyUrl(survey.id))}
-                  className="rounded-lg border-gray-200 hover:bg-gray-50 px-4"
+                  className="rounded-lg border-gray-700 bg-gray-800 hover:bg-purple-600 hover:border-purple-500 px-4 text-gray-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
                   title="Copy link"
                 >
                   <Copy className="h-4 w-4 mr-2" />
@@ -109,7 +109,7 @@ export const SurveysList = ({
                   variant="outline"
                   size="sm"
                   onClick={() => onShareLink(generateSurveyUrl(survey.id), survey.title)}
-                  className="rounded-lg border-gray-200 hover:bg-gray-50 px-4"
+                  className="rounded-lg border-gray-700 bg-gray-800 hover:bg-purple-600 hover:border-purple-500 px-4 text-gray-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
                   title="Share link"
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />

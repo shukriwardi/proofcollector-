@@ -190,20 +190,23 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <AppLayout>
-        <LoadingSpinner message="Loading your surveys..." />
-      </AppLayout>
+      <div className="min-h-screen bg-black">
+        <div className="flex items-center justify-center min-h-screen">
+          <LoadingSpinner message="Loading your surveys..." />
+        </div>
+      </div>
     );
   }
 
   return (
-    <AppLayout>
-      <div className="space-y-8">
+    <div className="min-h-screen bg-black">
+      {/* Dark themed app layout with purple accents */}
+      <div className="space-y-8 p-6 lg:p-8">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-black">Dashboard</h1>
-            <p className="text-gray-600 mt-2">Manage your testimonial surveys</p>
+            <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+            <p className="text-gray-400 mt-2">Manage your testimonial surveys</p>
           </div>
           
           <CreateSurveyDialog
@@ -217,7 +220,7 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Stats Overview */}
+        {/* Stats Overview with dark theme */}
         <DashboardStats 
           totalSurveys={surveys.length}
           totalTestimonials={totalTestimonials}
@@ -226,7 +229,7 @@ const Dashboard = () => {
 
         {/* Surveys */}
         <div>
-          <h2 className="text-xl font-semibold text-black mb-6">Your Surveys</h2>
+          <h2 className="text-xl font-semibold text-white mb-6">Your Surveys</h2>
           
           <SurveysList
             surveys={surveys}
@@ -243,7 +246,7 @@ const Dashboard = () => {
           />
         </div>
       </div>
-    </AppLayout>
+    </div>
   );
 };
 
