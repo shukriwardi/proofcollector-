@@ -116,13 +116,14 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl bg-gray-900 border-gray-800">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] bg-gray-900 border-gray-800 overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-white">Share Testimonial</DialogTitle>
         </DialogHeader>
-        <div className="space-y-6">
+        
+        <div className="flex-1 overflow-y-auto space-y-6 pr-2">
           {/* Theme Selection */}
-          <div>
+          <div className="flex-shrink-0">
             <h3 className="text-sm font-medium text-gray-300 mb-3">Choose Embed Theme</h3>
             <RadioGroup value={selectedTheme} onValueChange={handleThemeChange}>
               <div className={`flex items-center space-x-2 p-3 rounded-lg border transition-all cursor-pointer ${
@@ -153,7 +154,7 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
           </div>
 
           {/* Direct Link Section */}
-          <div>
+          <div className="flex-shrink-0">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-300">Direct Link</h3>
               <Button
@@ -169,7 +170,7 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
             <p className="text-sm text-gray-400 mb-2">
               Share this link directly with others:
             </p>
-            <div className="bg-gray-800 p-3 rounded-lg border border-gray-700">
+            <div className="bg-gray-800 p-3 rounded-lg border border-gray-700 max-h-20 overflow-y-auto">
               <pre className="text-sm text-gray-200 break-all whitespace-pre-wrap">
                 {generateDirectLink(testimonial)}
               </pre>
@@ -177,8 +178,8 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
           </div>
           
           {/* Embed Code Section */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
+          <div className="flex-shrink-0">
+            <div className="flex items-center justify-between mb-2 sticky top-0 bg-gray-900 py-2 z-10">
               <h3 className="text-sm font-medium text-gray-300">
                 {selectedTheme === 'dark' ? 'Dark' : 'Light'} Theme Embed Code
               </h3>
@@ -195,17 +196,15 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
             <p className="text-sm text-gray-400 mb-2">
               Copy this responsive iframe code with {selectedTheme} theme styling for your website:
             </p>
-            <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-              <div className="max-h-64 overflow-y-auto">
-                <pre className="text-sm text-gray-200 p-4 whitespace-pre-wrap break-all">
-                  {generateIframeCode(testimonial, selectedTheme)}
-                </pre>
-              </div>
+            <div className="bg-gray-800 rounded-lg border border-gray-700 max-h-64 overflow-y-auto">
+              <pre className="text-sm text-gray-200 p-4 whitespace-pre-wrap break-all">
+                {generateIframeCode(testimonial, selectedTheme)}
+              </pre>
             </div>
           </div>
           
           {/* Features Info */}
-          <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+          <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex-shrink-0">
             <h4 className="text-sm font-medium text-purple-400 mb-2">
               ✨ {selectedTheme === 'dark' ? 'Dark' : 'Light'} Theme Features:
             </h4>
@@ -230,7 +229,10 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
               <li>• Clean integration on any website</li>
             </ul>
           </div>
-          
+        </div>
+        
+        {/* Fixed bottom button */}
+        <div className="flex-shrink-0 pt-4 border-t border-gray-800">
           <Button
             onClick={handleCopyEmbed}
             className="w-full bg-purple-600 hover:bg-purple-700 text-white"
