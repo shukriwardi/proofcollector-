@@ -17,6 +17,7 @@ interface Survey {
   id: string;
   title: string;
   question: string;
+  user_id: string;
 }
 
 const Submit = () => {
@@ -85,7 +86,7 @@ const Submit = () => {
       console.log('Fetching survey with ID:', surveyId);
       const { data, error } = await supabase
         .from('surveys')
-        .select('id, title, question')
+        .select('id, title, question, user_id')
         .eq('id', surveyId)
         .single();
 
@@ -211,7 +212,7 @@ const Submit = () => {
   }
 
   if (isSubmitted) {
-    return <TestimonialSuccess />;
+    return <TestimonialSuccess surveyTitle={survey?.title} />;
   }
 
   return (
