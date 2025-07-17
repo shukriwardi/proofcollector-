@@ -27,6 +27,7 @@ const Submit = () => {
   
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
   const [formData, setFormData] = useState<TestimonialFormData>({
     name: "",
     email: "",
@@ -61,6 +62,7 @@ const Submit = () => {
       fetchSurvey();
     } else {
       setLoading(false);
+      setNotFound(true);
     }
   }, [surveyId]);
 
@@ -84,26 +86,31 @@ const Submit = () => {
   const fetchSurvey = async () => {
     try {
       console.log('Fetching survey with ID:', surveyId);
+      
+      // Try to fetch the survey without authentication first
       const { data, error } = await supabase
         .from('surveys')
         .select('id, title, question, user_id')
         .eq('id', surveyId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Supabase error:', error);
-        throw error;
+        setNotFound(true);
+        return;
+      }
+
+      if (!data) {
+        console.log('No survey found with ID:', surveyId);
+        setNotFound(true);
+        return;
       }
 
       console.log('Survey data fetched:', data);
       setSurvey(data);
     } catch (error) {
       console.error('Error fetching survey:', error);
-      toast({
-        title: "Survey Not Found",
-        description: getGenericErrorMessage('database'),
-        variant: "destructive",
-      });
+      setNotFound(true);
     } finally {
       setLoading(false);
     }
@@ -177,6 +184,11 @@ const Submit = () => {
       // Clear form data for security
       setFormData({ name: "", email: "", testimonial: "" });
       
+      toast({
+        title: "Thank you!",
+        description: "Your testimonial has been submitted successfully.",
+      });
+      
     } catch (error) {
       console.error('Error submitting testimonial:', error);
       toast({
@@ -207,7 +219,7 @@ const Submit = () => {
     );
   }
 
-  if (!survey && surveyId) {
+  if (notFound || !survey) {
     return <SurveyNotFound />;
   }
 
@@ -216,7 +228,7 @@ const Submit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-6">
+    <div className="min-h-screen bg-black flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-2xl">
         <TestimonialHeader title={survey?.title} />
         

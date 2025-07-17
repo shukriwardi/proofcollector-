@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Star } from "lucide-react";
+import { Loader2, Star, MessageCircle } from "lucide-react";
 import type { TestimonialFormData } from "@/lib/validation";
 
 interface TestimonialFormProps {
@@ -31,16 +31,17 @@ export const TestimonialForm = ({
   return (
     <div className="space-y-8">
       {surveyQuestion && (
-        <div className="text-center p-6 bg-gray-800 rounded-xl border border-gray-700">
-          <div className="flex justify-center mb-4">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="h-6 w-6 text-yellow-400 fill-current" />
-            ))}
+        <div className="text-center p-8 bg-gray-800 rounded-xl border border-gray-700">
+          <div className="flex justify-center mb-6">
+            <MessageCircle className="h-12 w-12 text-purple-400" />
           </div>
-          <h2 className="text-xl font-semibold text-white mb-2">Your feedback matters</h2>
-          <p className="text-gray-300 text-lg leading-relaxed">
-            {surveyQuestion}
+          <h2 className="text-2xl font-bold text-white mb-4">We'd love to hear about your experience</h2>
+          <p className="text-gray-300 text-lg leading-relaxed mb-6">
+            Your testimonial helps others learn about our services.
           </p>
+          <div className="bg-gray-900 rounded-lg p-6 border border-gray-600">
+            <h3 className="text-xl font-semibold text-white mb-2">{surveyQuestion}</h3>
+          </div>
         </div>
       )}
 
@@ -52,11 +53,11 @@ export const TestimonialForm = ({
         </Alert>
       )}
 
-      <form onSubmit={onSubmit} className="space-y-6">
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-sm font-medium text-gray-300">
-              Your name *
+      <form onSubmit={onSubmit} className="space-y-8">
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <Label htmlFor="name" className="text-lg font-medium text-white">
+              Name *
             </Label>
             <Input
               id="name"
@@ -66,19 +67,19 @@ export const TestimonialForm = ({
               onChange={onChange}
               required
               disabled={submitting || rateLimited}
-              className={`h-12 rounded-lg bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-purple-500 ${
-                errors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+              className={`h-14 rounded-lg bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500/20 text-lg ${
+                errors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
               }`}
-              placeholder="Enter your full name"
+              placeholder="Enter your name"
             />
             {errors.name && (
-              <p className="text-sm text-red-400">{errors.name}</p>
+              <p className="text-sm text-red-400 mt-2">{errors.name}</p>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email" className="text-sm font-medium text-gray-300">
-              Email address
+          <div className="space-y-3">
+            <Label htmlFor="email" className="text-lg font-medium text-white">
+              Email (optional)
             </Label>
             <Input
               id="email"
@@ -87,47 +88,47 @@ export const TestimonialForm = ({
               value={formData.email}
               onChange={onChange}
               disabled={submitting || rateLimited}
-              className={`h-12 rounded-lg bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-purple-500 ${
-                errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
+              className={`h-14 rounded-lg bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500/20 text-lg ${
+                errors.email ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
               }`}
-              placeholder="your@email.com (optional)"
+              placeholder="your@email.com"
             />
             {errors.email && (
-              <p className="text-sm text-red-400">{errors.email}</p>
+              <p className="text-sm text-red-400 mt-2">{errors.email}</p>
             )}
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="testimonial" className="text-sm font-medium text-gray-300">
-            Your testimonial *
-          </Label>
-          <Textarea
-            id="testimonial"
-            name="testimonial"
-            value={formData.testimonial}
-            onChange={onChange}
-            required
-            disabled={submitting || rateLimited}
-            rows={5}
-            placeholder="Share your experience in detail. What did you like most? How did it help you?"
-            className={`rounded-lg bg-gray-800 border-gray-700 text-white placeholder-gray-500 focus:border-purple-500 focus:ring-purple-500 resize-none ${
-              errors.testimonial ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""
-            }`}
-          />
-          {errors.testimonial && (
-            <p className="text-sm text-red-400">{errors.testimonial}</p>
-          )}
+          <div className="space-y-3">
+            <Label htmlFor="testimonial" className="text-lg font-medium text-white">
+              Testimonial *
+            </Label>
+            <Textarea
+              id="testimonial"
+              name="testimonial"
+              value={formData.testimonial}
+              onChange={onChange}
+              required
+              disabled={submitting || rateLimited}
+              rows={6}
+              placeholder="Share your experience..."
+              className={`rounded-lg bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500/20 resize-none text-lg leading-relaxed ${
+                errors.testimonial ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
+              }`}
+            />
+            {errors.testimonial && (
+              <p className="text-sm text-red-400 mt-2">{errors.testimonial}</p>
+            )}
+          </div>
         </div>
 
         <Button 
           type="submit" 
           disabled={submitting || rateLimited} 
-          className="w-full h-12 bg-purple-600 text-white hover:bg-purple-700 rounded-lg text-base font-medium shadow-sm hover:shadow-md transition-all duration-200"
+          className="w-full h-14 bg-purple-600 text-white hover:bg-purple-700 rounded-lg text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50"
         >
           {submitting ? (
             <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <Loader2 className="mr-3 h-5 w-5 animate-spin" />
               Submitting your testimonial...
             </>
           ) : rateLimited ? (
@@ -137,8 +138,8 @@ export const TestimonialForm = ({
           )}
         </Button>
         
-        <p className="text-sm text-gray-400 text-center">
-          Your testimonial will be reviewed and published shortly
+        <p className="text-sm text-gray-400 text-center leading-relaxed">
+          Your testimonial will be reviewed and published shortly. Thank you for taking the time to share your experience!
         </p>
       </form>
     </div>
