@@ -88,7 +88,6 @@ const Submit = () => {
     try {
       console.log('Fetching survey with ID:', surveyId);
       
-      // Create a new client without authentication for public survey access
       const { data, error } = await supabase
         .from('surveys')
         .select('id, title, question, user_id, created_at')
@@ -99,10 +98,6 @@ const Submit = () => {
 
       if (error) {
         console.error('Supabase error:', error);
-        if (error.code === 'PGRST116' || error.message.includes('permission denied')) {
-          // This means RLS is blocking public access - we need to update policies
-          console.error('RLS policy blocking public survey access');
-        }
         setNotFound(true);
         return;
       }
