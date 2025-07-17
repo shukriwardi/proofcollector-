@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Star, MessageCircle, Link, BarChart3, Mail, ArrowRight, Check, Settings, Send, Database, Share2, Image, Clock, UserPlus, ExternalLink, Zap } from "lucide-react";
@@ -88,13 +87,23 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Right side - Dashboard Screenshot */}
+            {/* Right side - Video Demo */}
             <div className="relative">
-              <img 
-                src="/lovable-uploads/321b8841-bdff-4a39-9b01-66cbff4fa279.png" 
-                alt="ProofCollector Dashboard" 
-                className="w-full rounded-2xl shadow-xl border border-gray-800"
-              />
+              <div className="bg-gray-900 rounded-2xl shadow-xl border border-gray-800 p-8 text-center">
+                <div className="w-16 h-16 bg-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                  <MessageCircle className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-white mb-4">See ProofCollector in Action</h3>
+                <p className="text-gray-300 mb-6">Watch how easy it is to collect and manage testimonials</p>
+                <div className="bg-gray-800 rounded-xl p-12 border border-gray-700">
+                  <div className="flex items-center justify-center space-x-2 text-purple-400">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+                    <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse delay-75"></div>
+                    <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse delay-150"></div>
+                  </div>
+                  <p className="text-gray-400 mt-4">Interactive demo coming soon</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -174,31 +183,13 @@ const Index = () => {
             </h3>
           </div>
 
-          {/* 4-Step Process with Screenshots */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-            {/* Step 1: Create Customizable Survey */}
-            <div className="text-center">
-              <Card className="p-4 bg-gray-900 border border-gray-800 shadow-sm hover:shadow-lg transition-all duration-300 rounded-3xl mb-6 min-h-[280px] flex flex-col justify-center relative overflow-hidden">
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg z-10">
-                  1
-                </div>
-                <img 
-                  src="/lovable-uploads/321b8841-bdff-4a39-9b01-66cbff4fa279.png" 
-                  alt="Create Survey Dashboard" 
-                  className="w-full h-full object-cover rounded-2xl"
-                />
-              </Card>
-              <h3 className="text-xl font-semibold text-white mb-3">Create Customizable Survey</h3>
-              <p className="text-gray-400 leading-relaxed">
-                Set up your testimonial collection survey with custom questions and design to match your brand perfectly.
-              </p>
-            </div>
-
-            {/* Step 2: Send as Link */}
+          {/* 3-Step Process with Screenshots */}
+          <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+            {/* Step 1: Send as Link */}
             <div className="text-center">
               <Card className="p-8 bg-gray-900 border border-gray-800 shadow-sm hover:shadow-lg transition-all duration-300 rounded-3xl mb-6 min-h-[280px] flex flex-col justify-center relative">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
-                  2
+                  1
                 </div>
                 <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <Send className="h-8 w-8 text-white" />
@@ -210,7 +201,7 @@ const Index = () => {
                       <span className="text-sm font-medium text-blue-300">Email</span>
                     </div>
                     <div className="text-xs text-blue-300 font-mono break-all bg-gray-800 p-2 rounded border border-gray-700">
-                      https://proofcollector.com/survey/abc123
+                      https://proofcollector.com/submit/abc123
                     </div>
                   </Card>
                   <div className="flex space-x-2">
@@ -225,11 +216,11 @@ const Index = () => {
               </p>
             </div>
 
-            {/* Step 3: Collect in Dashboard */}
+            {/* Step 2: Collect in Dashboard */}
             <div className="text-center">
               <Card className="p-4 bg-gray-900 border border-gray-800 shadow-sm hover:shadow-lg transition-all duration-300 rounded-3xl mb-6 min-h-[280px] flex flex-col justify-center relative overflow-hidden">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg z-10">
-                  3
+                  2
                 </div>
                 <img 
                   src="/lovable-uploads/8bcd2d2e-5eb7-4c5e-948e-b19e0f91d9dd.png" 
@@ -243,11 +234,11 @@ const Index = () => {
               </p>
             </div>
 
-            {/* Step 4: Copy as Image or Embed */}
+            {/* Step 3: Copy as Image or Embed */}
             <div className="text-center">
               <Card className="p-8 bg-gray-900 border border-gray-800 shadow-sm hover:shadow-lg transition-all duration-300 rounded-3xl mb-6 min-h-[280px] flex flex-col justify-center relative">
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
-                  4
+                  3
                 </div>
                 <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
                   <Share2 className="h-8 w-8 text-white" />
