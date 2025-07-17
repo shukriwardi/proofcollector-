@@ -8,6 +8,15 @@ interface TestimonialSuccessProps {
 }
 
 export const TestimonialSuccess = ({ surveyTitle }: TestimonialSuccessProps) => {
+  const handleClose = () => {
+    // Try to close the window/tab, fallback to going back
+    if (window.opener) {
+      window.close();
+    } else {
+      window.history.back();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-6">
       <Card className="p-12 lg:p-16 bg-gray-900 border border-gray-800 shadow-2xl rounded-2xl text-center max-w-lg w-full">
@@ -17,7 +26,7 @@ export const TestimonialSuccess = ({ surveyTitle }: TestimonialSuccessProps) => 
         
         <h1 className="text-4xl font-bold text-white mb-6">🎉 Thank you!</h1>
         <p className="text-xl text-gray-200 mb-8 leading-relaxed">
-          Thank you for your feedback{surveyTitle ? ` on behalf of ${surveyTitle}` : ''}! Your testimonial has been received and will help others make informed decisions.
+          Thank you for your feedback{surveyTitle ? ` about ${surveyTitle}` : ''}! Your testimonial has been received and will help others make informed decisions.
         </p>
         
         <div className="flex justify-center space-x-1 mb-8">
@@ -40,9 +49,9 @@ export const TestimonialSuccess = ({ surveyTitle }: TestimonialSuccessProps) => 
           <Button 
             variant="outline" 
             className="rounded-lg border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700 hover:text-white hover:border-purple-500 transition-all duration-200"
-            onClick={() => window.close()}
+            onClick={handleClose}
           >
-            Close Window
+            Close
           </Button>
         </div>
       </Card>

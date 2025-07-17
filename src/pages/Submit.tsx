@@ -248,16 +248,80 @@ const Submit = () => {
         <TestimonialHeader title={survey?.title} />
         
         <Card className="p-8 bg-gray-900 border border-gray-800 shadow-lg rounded-xl">
-          <TestimonialForm
-            formData={formData}
-            errors={errors}
-            rateLimited={rateLimited}
-            cooldownTime={cooldownTime}
-            submitting={submitting}
-            surveyQuestion={survey?.question}
-            onSubmit={handleSubmit}
-            onChange={handleChange}
-          />
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-white mb-3">{survey.question}</h2>
+              <p className="text-gray-400">Share your honest experience and help others make informed decisions.</p>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
+                  Your Name *
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 focus:outline-none"
+                  placeholder="Enter your full name"
+                  required
+                />
+                {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+                  Email Address (Optional)
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 focus:outline-none"
+                  placeholder="your.email@example.com"
+                />
+                {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="testimonial" className="block text-sm font-medium text-gray-300 mb-2">
+                  Your Testimonial *
+                </label>
+                <textarea
+                  id="testimonial"
+                  name="testimonial"
+                  value={formData.testimonial}
+                  onChange={handleChange}
+                  rows={6}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 focus:outline-none resize-none"
+                  placeholder="Share your experience, what you liked, and how it helped you..."
+                  required
+                />
+                {errors.testimonial && <p className="mt-1 text-sm text-red-400">{errors.testimonial}</p>}
+              </div>
+
+              {rateLimited && (
+                <div className="p-4 bg-yellow-900/20 border border-yellow-800 rounded-lg">
+                  <p className="text-yellow-400 text-sm">
+                    Please wait {cooldownTime} seconds before submitting another testimonial.
+                  </p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting || rateLimited}
+                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+              >
+                {submitting ? "Submitting..." : "Submit Testimonial"}
+              </button>
+            </form>
+          </div>
         </Card>
       </div>
     </div>
