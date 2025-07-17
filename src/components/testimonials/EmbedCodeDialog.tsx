@@ -116,14 +116,15 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] bg-gray-900 border-gray-800 overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] bg-gray-900 border-gray-800 flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-white">Share Testimonial</DialogTitle>
         </DialogHeader>
         
-        <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+        {/* Main scrollable content area */}
+        <div className="max-h-[500px] overflow-y-auto pb-8 space-y-6">
           {/* Theme Selection */}
-          <div className="flex-shrink-0">
+          <div>
             <h3 className="text-sm font-medium text-gray-300 mb-3">Choose Embed Theme</h3>
             <RadioGroup value={selectedTheme} onValueChange={handleThemeChange}>
               <div className={`flex items-center space-x-2 p-3 rounded-lg border transition-all cursor-pointer ${
@@ -154,7 +155,7 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
           </div>
 
           {/* Direct Link Section */}
-          <div className="flex-shrink-0">
+          <div>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-300">Direct Link</h3>
               <Button
@@ -178,8 +179,8 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
           </div>
           
           {/* Embed Code Section */}
-          <div className="flex-shrink-0">
-            <div className="flex items-center justify-between mb-2 sticky top-0 bg-gray-900 py-2 z-10">
+          <div>
+            <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium text-gray-300">
                 {selectedTheme === 'dark' ? 'Dark' : 'Light'} Theme Embed Code
               </h3>
@@ -204,7 +205,7 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
           </div>
           
           {/* Features Info */}
-          <div className="bg-gray-800 p-4 rounded-lg border border-gray-700 flex-shrink-0">
+          <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
             <h4 className="text-sm font-medium text-purple-400 mb-2">
               ✨ {selectedTheme === 'dark' ? 'Dark' : 'Light'} Theme Features:
             </h4>
@@ -229,16 +230,16 @@ export const EmbedCodeDialog = ({ testimonial, isOpen, onClose, onCopyEmbed }: E
               <li>• Clean integration on any website</li>
             </ul>
           </div>
-        </div>
-        
-        {/* Fixed bottom button */}
-        <div className="flex-shrink-0 pt-4 border-t border-gray-800">
-          <Button
-            onClick={handleCopyEmbed}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-          >
-            Copy {selectedTheme === 'dark' ? 'Dark' : 'Light'} Theme Embed Code
-          </Button>
+
+          {/* Copy Embed Button - Now inside scrollable area */}
+          <div className="pt-4">
+            <Button
+              onClick={handleCopyEmbed}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              Copy {selectedTheme === 'dark' ? 'Dark' : 'Light'} Theme Embed Code
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
