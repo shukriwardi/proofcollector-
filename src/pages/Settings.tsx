@@ -1,63 +1,68 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AppLayout } from "@/components/AppLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { profileSchema, type ProfileFormData } from "@/lib/validation";
-import { sanitizeText, getGenericErrorMessage, maskEmail } from "@/lib/security";
+import { useSEO } from "@/hooks/useSEO";
 
 const Settings = () => {
-  const { user } = useAuth();
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const { user, updatePassword } = useAuth();
   const { toast } = useToast();
-  const [formData, setFormData] = useState<ProfileFormData>({
-    username: ""
-  });
-  const [errors, setErrors] = useState<Partial<ProfileFormData>>({});
-  const [isLoading, setIsLoading] = useState(false);
 
-  const validateForm = (): boolean => {
+  useSEO({
+    title: 'Settings | ProofCollector',
+    description: 'Manage your ProofCollector account settings and preferences.',
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
     try {
-      profileSchema.parse(formData);
-      setErrors({});
-      return true;
-    } catch (error: any) {
-      const fieldErrors: Partial<ProfileFormData> = {};
-      error.errors?.forEach((err: any) => {
-        const field = err.path[0] as keyof ProfileFormData;
-        fieldErrors[field] = err.message;
-      });
-      setErrors(fieldErrors);
-      return false;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('username, email')
+        .eq('id', user?.id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setUsername(data.username || '');
+        setEmail(data.email || user?.email || '');
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
     }
   };
 
-  const handleUpdateProfile = async () => {
-    if (!user || !validateForm()) {
-      if (!validateForm()) {
-        toast({
-          title: "Validation Error",
-          description: "Please fix the errors in the form.",
-          variant: "destructive",
-        });
-      }
-      return;
-    }
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
 
-    setIsLoading(true);
     try {
-      const sanitizedData = {
-        username: sanitizeText(formData.username)
-      };
-
       const { error } = await supabase
         .from('profiles')
-        .update(sanitizedData)
-        .eq('id', user.id);
+        .update({
+          username,
+          email: email || user?.email
+        })
+        .eq('id', user?.id);
 
       if (error) throw error;
 
@@ -69,83 +74,163 @@ const Settings = () => {
       console.error('Error updating profile:', error);
       toast({
         title: "Error",
-        description: getGenericErrorMessage('database'),
+        description: "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    // Clear error when user starts typing
-    if (errors[name as keyof ProfileFormData]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Password mismatch",
+        description: "New passwords do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const { error } = await updatePassword(newPassword);
+
+      if (error) throw error;
+
+      toast({
+        title: "Password updated",
+        description: "Your password has been updated successfully.",
+      });
+      
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error: any) {
+      console.error('Error updating password:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
   return (
-    <AppLayout>
-      <div className="space-y-8">
+    <div className="min-h-screen bg-black">
+      <div className="space-y-8 p-6 lg:p-8">
         <div>
-          <h1 className="text-3xl font-bold text-black">Settings</h1>
-          <p className="text-gray-600 mt-2">Manage your account settings and preferences</p>
+          <h1 className="text-3xl font-bold text-white">Settings</h1>
+          <p className="text-gray-400 mt-2">Manage your account settings and preferences</p>
         </div>
 
-        <Card className="p-6 bg-white border-0 shadow-sm rounded-xl">
-          <h2 className="text-xl font-semibold text-black mb-4">Profile Information</h2>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={user?.email ? maskEmail(user.email) : ""}
-                disabled
-                className="mt-2 bg-gray-50"
-              />
-              <p className="text-sm text-gray-500 mt-1">Email cannot be changed</p>
-            </div>
-            
-            <div>
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                placeholder="Enter your username"
-                className={`mt-2 ${errors.username ? 'border-red-500' : ''}`}
-                maxLength={50}
-              />
-              {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
-              <p className="text-sm text-gray-500 mt-1">Only letters, numbers, underscores, and hyphens allowed</p>
-            </div>
+        <div className="grid gap-6">
+          {/* Profile Settings */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white">Profile Information</CardTitle>
+              <CardDescription className="text-gray-400">
+                Update your account profile information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleProfileUpdate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="text-gray-300">Username</Label>
+                  <Input
+                    id="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter your username"
+                    className="bg-gray-800 border-gray-700 text-white focus:border-purple-500 focus:ring-purple-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-gray-300">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="bg-gray-800 border-gray-700 text-white focus:border-purple-500 focus:ring-purple-500"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  disabled={loading}
+                  className="bg-purple-600 text-white hover:bg-purple-700 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
+                >
+                  {loading ? "Updating..." : "Update Profile"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
 
-            <Button 
-              onClick={handleUpdateProfile} 
-              disabled={isLoading || !formData.username.trim()}
-              className="bg-black text-white hover:bg-gray-800"
-            >
-              {isLoading ? "Updating..." : "Update Profile"}
-            </Button>
-          </div>
-        </Card>
-
-        <Card className="p-6 bg-white border-0 shadow-sm rounded-xl">
-          <h2 className="text-xl font-semibold text-black mb-4">Security Information</h2>
-          <div className="space-y-3 text-sm text-gray-600">
-            <p>✅ Your data is protected with Row-Level Security</p>
-            <p>✅ All form inputs are validated and sanitized</p>
-            <p>✅ Rate limiting is enabled to prevent abuse</p>
-            <p>✅ Your email address is masked for privacy</p>
-          </div>
-        </Card>
+          {/* Password Settings */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white">Change Password</CardTitle>
+              <CardDescription className="text-gray-400">
+                Update your account password
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword" className="text-gray-300">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    minLength={8}
+                    className="bg-gray-800 border-gray-700 text-white focus:border-purple-500 focus:ring-purple-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-gray-300">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    minLength={8}
+                    className="bg-gray-800 border-gray-700 text-white focus:border-purple-500 focus:ring-purple-500"
+                  />
+                </div>
+                <div className="text-sm text-gray-400">
+                  Password must be at least 8 characters long.
+                </div>
+                <Button 
+                  type="submit" 
+                  disabled={passwordLoading}
+                  className="bg-purple-600 text-white hover:bg-purple-700 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
+                >
+                  {passwordLoading ? "Updating..." : "Update Password"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </AppLayout>
+    </div>
   );
 };
 

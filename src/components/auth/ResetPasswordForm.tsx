@@ -24,20 +24,20 @@ const ResetPasswordForm = ({
   onSubmit 
 }: ResetPasswordFormProps) => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-black py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Logo */}
         <div className="text-center">
           <Link to="/" className="flex items-center justify-center space-x-2">
-            <MessageCircle className="h-8 w-8 text-black" />
-            <span className="text-2xl font-bold text-black">ProofCollector</span>
+            <MessageCircle className="h-8 w-8 text-purple-500" />
+            <span className="text-2xl font-bold text-white">ProofCollector</span>
           </Link>
         </div>
 
-        <Card>
+        <Card className="bg-gray-900 border-gray-800">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Set Your New Password</CardTitle>
-            <CardDescription className="text-center">
+            <CardTitle className="text-2xl text-center text-white">Set Your New Password</CardTitle>
+            <CardDescription className="text-center text-gray-400">
               Please enter your new password to complete the reset process
             </CardDescription>
           </CardHeader>
@@ -45,7 +45,7 @@ const ResetPasswordForm = ({
           <form onSubmit={onSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
+                <Label htmlFor="password" className="text-gray-300">New Password</Label>
                 <Input
                   id="password"
                   name="password"
@@ -55,10 +55,11 @@ const ResetPasswordForm = ({
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your new password"
                   minLength={8}
+                  className="bg-gray-800 border-gray-700 text-white focus:border-purple-500 focus:ring-purple-500"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Label htmlFor="confirmPassword" className="text-gray-300">Confirm New Password</Label>
                 <Input
                   id="confirmPassword"
                   name="confirmPassword"
@@ -68,14 +69,15 @@ const ResetPasswordForm = ({
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm your new password"
                   minLength={8}
+                  className="bg-gray-800 border-gray-700 text-white focus:border-purple-500 focus:ring-purple-500"
                 />
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-400">
                 <p>Password must be at least 8 characters long.</p>
               </div>
               <Button 
                 type="submit" 
-                className="w-full" 
+                className="w-full bg-purple-600 text-white hover:bg-purple-700 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20" 
                 disabled={loading}
               >
                 {loading ? "Updating Password..." : "Update Password"}
@@ -87,7 +89,7 @@ const ResetPasswordForm = ({
             <div className="text-center">
               <Link 
                 to="/forgot-password" 
-                className="text-sm text-gray-600 hover:text-black transition-colors"
+                className="text-sm text-purple-400 hover:text-purple-300 transition-colors"
               >
                 Request new reset link
               </Link>

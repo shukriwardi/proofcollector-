@@ -18,15 +18,15 @@ const NotFound = () => {
   const isLinkRoute = location.pathname.startsWith('/link/');
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
-      <Card className="p-12 bg-white border-0 shadow-sm rounded-xl text-center max-w-md w-full">
+    <div className="min-h-screen bg-black flex items-center justify-center px-6">
+      <Card className="p-12 bg-gray-900 border-gray-800 shadow-sm rounded-xl text-center max-w-md w-full">
         <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-6" />
         
-        <h1 className="text-3xl font-bold text-black mb-4">
+        <h1 className="text-3xl font-bold text-white mb-4">
           {isLinkRoute ? 'Survey Not Found' : '404 - Page Not Found'}
         </h1>
         
-        <p className="text-gray-600 mb-6">
+        <p className="text-gray-400 mb-6">
           {isLinkRoute 
             ? 'The survey link you\'re looking for doesn\'t exist or has been removed.'
             : 'The page you\'re looking for doesn\'t exist.'
@@ -35,7 +35,7 @@ const NotFound = () => {
         
         <Button 
           onClick={() => window.location.href = '/'}
-          className="inline-flex items-center space-x-2"
+          className="inline-flex items-center space-x-2 bg-purple-600 text-white hover:bg-purple-700 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
         >
           <Home className="h-4 w-4" />
           <span>Go Home</span>

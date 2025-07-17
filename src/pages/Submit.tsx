@@ -199,7 +199,11 @@ const Submit = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading survey..." />;
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <LoadingSpinner message="Loading survey..." />
+      </div>
+    );
   }
 
   if (!survey && surveyId) {
@@ -211,11 +215,11 @@ const Submit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+    <div className="min-h-screen bg-black flex items-center justify-center px-6">
       <div className="w-full max-w-2xl">
         <TestimonialHeader title={survey?.title} />
         
-        <Card className="p-8 bg-white border-0 shadow-sm rounded-xl">
+        <Card className="p-8 bg-gray-900 border border-gray-800 shadow-lg rounded-xl">
           <TestimonialForm
             formData={formData}
             errors={errors}
