@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from "react";
-import { AppLayout } from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -43,26 +42,35 @@ const Testimonials = () => {
 
   const fetchTestimonials = async () => {
     try {
+      console.log('Fetching testimonials for user:', user?.id);
+      
+      // Fetch testimonials that belong to surveys owned by the current user
       const { data, error } = await supabase
         .from('testimonials')
         .select(`
           *,
-          survey:surveys (
+          survey:surveys!inner (
             id,
             title,
-            question
+            question,
+            user_id
           )
         `)
+        .eq('survey.user_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching testimonials:', error);
+        throw error;
+      }
 
+      console.log('Testimonials fetched:', data);
       setTestimonials(data || []);
     } catch (error) {
-      console.error('Error fetching ProofCollector data:', error);
+      console.error('Error fetching testimonials:', error);
       toast({
         title: "Error",
-        description: "Failed to load ProofCollector data. Please try again.",
+        description: "Failed to load testimonials. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -81,14 +89,14 @@ const Testimonials = () => {
 
       setTestimonials(testimonials.filter(t => t.id !== testimonialId));
       toast({
-        title: "Proof Deleted",
-        description: "The proof has been deleted successfully.",
+        title: "Testimonial Deleted",
+        description: "The testimonial has been deleted successfully.",
       });
     } catch (error) {
-      console.error('Error deleting proof:', error);
+      console.error('Error deleting testimonial:', error);
       toast({
         title: "Error",
-        description: "Failed to delete proof. Please try again.",
+        description: "Failed to delete testimonial. Please try again.",
         variant: "destructive",
       });
     }
@@ -113,7 +121,7 @@ const Testimonials = () => {
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
-            <p className="text-gray-400">Loading proof collection...</p>
+            <p className="text-gray-400">Loading testimonials...</p>
           </div>
         </div>
       </div>
@@ -123,6 +131,11 @@ const Testimonials = () => {
   return (
     <div className="min-h-screen bg-black">
       <div className="space-y-8 p-6 lg:p-8">
+        <div>
+          <h1 className="text-3xl font-bold text-white">Testimonials</h1>
+          <p className="text-gray-400 mt-2">Manage and organize your collected testimonials</p>
+        </div>
+
         <TestimonialFilters 
           searchTerm={searchTerm} 
           onSearchChange={setSearchTerm} 

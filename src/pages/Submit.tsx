@@ -18,6 +18,7 @@ interface Survey {
   title: string;
   question: string;
   user_id: string;
+  created_at: string;
 }
 
 const Submit = () => {
@@ -87,12 +88,14 @@ const Submit = () => {
     try {
       console.log('Fetching survey with ID:', surveyId);
       
-      // Try to fetch the survey without authentication first
+      // Fetch the survey directly without authentication requirements
       const { data, error } = await supabase
         .from('surveys')
-        .select('id, title, question, user_id')
+        .select('id, title, question, user_id, created_at')
         .eq('id', surveyId)
         .maybeSingle();
+
+      console.log('Survey fetch result:', { data, error });
 
       if (error) {
         console.error('Supabase error:', error);
@@ -106,7 +109,7 @@ const Submit = () => {
         return;
       }
 
-      console.log('Survey data fetched:', data);
+      console.log('Survey data fetched successfully:', data);
       setSurvey(data);
     } catch (error) {
       console.error('Error fetching survey:', error);
@@ -135,7 +138,12 @@ const Submit = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!survey) return;
+    if (!survey) {
+      console.error('No survey available for submission');
+      return;
+    }
+
+    console.log('Starting testimonial submission for survey:', survey.id);
 
     // Validate form
     if (!validateForm()) {
@@ -173,11 +181,19 @@ const Submit = () => {
         testimonial: sanitizeText(formData.testimonial)
       };
 
-      const { error } = await supabase
-        .from('testimonials')
-        .insert([sanitizedData]);
+      console.log('Submitting testimonial data:', sanitizedData);
 
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from('testimonials')
+        .insert([sanitizedData])
+        .select();
+
+      if (error) {
+        console.error('Error inserting testimonial:', error);
+        throw error;
+      }
+
+      console.log('Testimonial submitted successfully:', data);
 
       setIsSubmitted(true);
       

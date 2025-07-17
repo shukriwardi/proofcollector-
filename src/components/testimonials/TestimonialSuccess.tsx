@@ -17,7 +17,7 @@ export const TestimonialSuccess = ({ surveyTitle }: TestimonialSuccessProps) => 
         
         <h1 className="text-4xl font-bold text-white mb-6">🎉 Thank you!</h1>
         <p className="text-xl text-gray-200 mb-8 leading-relaxed">
-          Thank you for your feedback! Your response has been submitted{surveyTitle ? ` on behalf of ${surveyTitle}` : ''}.
+          Thank you for your feedback{surveyTitle ? ` on behalf of ${surveyTitle}` : ''}! Your testimonial has been received and will help others make informed decisions.
         </p>
         
         <div className="flex justify-center space-x-1 mb-8">
@@ -28,7 +28,7 @@ export const TestimonialSuccess = ({ surveyTitle }: TestimonialSuccessProps) => 
         
         <div className="bg-gray-800 rounded-xl p-8 mb-8 border border-gray-700">
           <p className="text-gray-300 leading-relaxed text-lg">
-            Your feedback helps us improve and helps others make informed decisions. 
+            Your feedback is valuable and helps build trust in the community. 
             We'll review your testimonial and it will be published shortly.
           </p>
         </div>
@@ -42,7 +42,7 @@ export const TestimonialSuccess = ({ surveyTitle }: TestimonialSuccessProps) => 
             className="rounded-lg border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700 hover:text-white hover:border-purple-500 transition-all duration-200"
             onClick={() => window.close()}
           >
-            Close window
+            Close Window
           </Button>
         </div>
       </Card>

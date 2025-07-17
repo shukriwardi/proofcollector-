@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Star, MessageCircle } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 import type { TestimonialFormData } from "@/lib/validation";
 
 interface TestimonialFormProps {
@@ -33,11 +33,11 @@ export const TestimonialForm = ({
       {surveyQuestion && (
         <div className="text-center p-8 bg-gray-800 rounded-xl border border-gray-700">
           <div className="flex justify-center mb-6">
-            <MessageCircle className="h-12 w-12 text-purple-400" />
+            <MessageCircle className="h-12 w-12 text-purple-500" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-4">We'd love to hear about your experience</h2>
+          <h2 className="text-2xl font-bold text-white mb-4">Share Your Experience</h2>
           <p className="text-gray-300 text-lg leading-relaxed mb-6">
-            Your testimonial helps others learn about our services.
+            Your feedback helps others make informed decisions.
           </p>
           <div className="bg-gray-900 rounded-lg p-6 border border-gray-600">
             <h3 className="text-xl font-semibold text-white mb-2">{surveyQuestion}</h3>
@@ -57,7 +57,7 @@ export const TestimonialForm = ({
         <div className="space-y-6">
           <div className="space-y-3">
             <Label htmlFor="name" className="text-lg font-medium text-white">
-              Name *
+              Your Name *
             </Label>
             <Input
               id="name"
@@ -100,7 +100,7 @@ export const TestimonialForm = ({
 
           <div className="space-y-3">
             <Label htmlFor="testimonial" className="text-lg font-medium text-white">
-              Testimonial *
+              Your Testimonial *
             </Label>
             <Textarea
               id="testimonial"
@@ -110,7 +110,7 @@ export const TestimonialForm = ({
               required
               disabled={submitting || rateLimited}
               rows={6}
-              placeholder="Share your experience..."
+              placeholder="Share your experience in detail..."
               className={`rounded-lg bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500/20 resize-none text-lg leading-relaxed ${
                 errors.testimonial ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : ""
               }`}
@@ -134,7 +134,7 @@ export const TestimonialForm = ({
           ) : rateLimited ? (
             `Please wait ${cooldownTime}s`
           ) : (
-            'Submit your testimonial'
+            'Submit Your Testimonial'
           )}
         </Button>
         
