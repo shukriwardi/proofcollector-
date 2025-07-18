@@ -2,7 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, CreditCard, Zap, RefreshCw } from "lucide-react";
+import { Check, CreditCard, Zap, RefreshCw, TestTube } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,7 @@ const Billing = () => {
     if (searchParams.get('success') === 'true') {
       toast({
         title: "Payment successful!",
-        description: "Your subscription has been activated. Refreshing subscription status...",
+        description: "Your test subscription has been activated. Refreshing subscription status...",
       });
       // Refresh subscription status after payment
       setTimeout(() => {
@@ -66,8 +66,15 @@ const Billing = () => {
       <div className="space-y-8 p-6 lg:p-8">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-2">Billing & Plans</h1>
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <h1 className="text-3xl font-bold text-white">Billing & Plans</h1>
+            <Badge className="bg-yellow-600 text-white">
+              <TestTube className="mr-1 h-3 w-3" />
+              TEST MODE
+            </Badge>
+          </div>
           <p className="text-gray-400">Choose the perfect plan for your testimonial collection needs</p>
+          <p className="text-yellow-400 text-sm mt-2">⚠️ Currently in test mode - use test payment methods</p>
         </div>
 
         {/* Current Plan */}
@@ -78,7 +85,7 @@ const Billing = () => {
                 <h2 className="text-xl font-semibold text-white mb-2">Current Plan</h2>
                 <div className="flex items-center space-x-2">
                   <Badge className={isPro ? "bg-purple-600 text-white" : "bg-green-600 text-white"}>
-                    {isPro ? "Pro Plan" : "Free Plan"}
+                    {isPro ? "Pro Plan (TEST)" : "Free Plan"}
                   </Badge>
                   {isPro ? (
                     <span className="text-gray-400">Unlimited surveys, 250 responses/month</span>
@@ -150,7 +157,7 @@ const Billing = () => {
             </Badge>
             
             <div className="text-center mb-6 mt-4">
-              <h3 className="text-xl font-semibold text-white mb-2">Pro</h3>
+              <h3 className="text-xl font-semibold text-white mb-2">Pro (TEST)</h3>
               <div className="text-3xl font-bold text-white mb-2">$4</div>
               <p className="text-gray-400">per month</p>
             </div>
@@ -184,7 +191,7 @@ const Billing = () => {
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <Zap className="mr-2 h-4 w-4" />
-                Manage Subscription
+                Manage Test Subscription
               </Button>
             ) : (
               <Button 
@@ -192,7 +199,7 @@ const Billing = () => {
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <CreditCard className="mr-2 h-4 w-4" />
-                Subscribe to Pro
+                Subscribe to Pro (TEST)
               </Button>
             )}
           </Card>
@@ -205,7 +212,7 @@ const Billing = () => {
             <CreditCard className="h-12 w-12 text-gray-500 mx-auto mb-4" />
             {isPro ? (
               <div>
-                <p className="text-gray-400 mb-2">Your subscription is active</p>
+                <p className="text-gray-400 mb-2">Your test subscription is active</p>
                 {subscription.subscription_end && (
                   <p className="text-gray-500 text-sm">
                     Next billing date: {new Date(subscription.subscription_end).toLocaleDateString()}
@@ -216,7 +223,7 @@ const Billing = () => {
                   variant="outline"
                   className="mt-4 border-gray-700 text-gray-300 hover:bg-gray-800"
                 >
-                  View Billing Details
+                  View Test Billing Details
                 </Button>
               </div>
             ) : (

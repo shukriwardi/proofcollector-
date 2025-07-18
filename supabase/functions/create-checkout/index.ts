@@ -27,9 +27,10 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-    logStep("Stripe key verified");
+    // Use TEST secret key for testing
+    const stripeKey = Deno.env.get("STRIPE_TEST_SECRET_KEY") || Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_TEST_SECRET_KEY or STRIPE_SECRET_KEY is not set");
+    logStep("Stripe test key verified", { isTestMode: stripeKey.startsWith('sk_test_') });
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
@@ -64,10 +65,10 @@ serve(async (req) => {
           price_data: {
             currency: "usd",
             product_data: { 
-              name: "ProofCollector Pro Plan",
+              name: "ProofCollector Pro Plan (TEST)",
               description: "Unlimited surveys, 250 responses/month, unlimited downloads/embeds, no branding, priority support"
             },
-            unit_amount: 400, // $4.00
+            unit_amount: 400, // $4.00 (same as live)
             recurring: { interval: "month" },
           },
           quantity: 1,
@@ -79,10 +80,11 @@ serve(async (req) => {
       metadata: {
         user_id: user.id,
         user_email: user.email,
+        test_mode: "true",
       },
     });
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+    logStep("Test checkout session created", { sessionId: session.id, url: session.url });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
