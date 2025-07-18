@@ -27,10 +27,10 @@ serve(async (req) => {
   try {
     logStep("Function started");
 
-    // Use TEST secret key for testing
-    const stripeKey = Deno.env.get("STRIPE_TEST_SECRET_KEY") || Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_TEST_SECRET_KEY or STRIPE_SECRET_KEY is not set");
-    logStep("Stripe test key verified", { isTestMode: stripeKey.startsWith('sk_test_') });
+    // Use live secret key
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    logStep("Stripe live key verified");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
@@ -78,7 +78,7 @@ serve(async (req) => {
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      logStep("Active test subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd, testMode: true });
+      logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
     } else {
       logStep("No active subscription found");
     }
@@ -95,7 +95,7 @@ serve(async (req) => {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'email' });
 
-    logStep("Updated database with test subscription info", { subscribed: hasActiveSub, subscriptionTier });
+    logStep("Updated database with subscription info", { subscribed: hasActiveSub, subscriptionTier });
     
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,

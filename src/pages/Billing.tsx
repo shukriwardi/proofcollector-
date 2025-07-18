@@ -2,7 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, CreditCard, Zap, RefreshCw, TestTube } from "lucide-react";
+import { Check, CreditCard, Zap, RefreshCw, Mail, Phone } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,7 @@ const Billing = () => {
     if (searchParams.get('success') === 'true') {
       toast({
         title: "Payment successful!",
-        description: "Your test subscription has been activated. Refreshing subscription status...",
+        description: "Your subscription has been activated. Refreshing subscription status...",
       });
       // Refresh subscription status after payment
       setTimeout(() => {
@@ -66,15 +66,8 @@ const Billing = () => {
       <div className="space-y-8 p-6 lg:p-8">
         {/* Header */}
         <div className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <h1 className="text-3xl font-bold text-white">Billing & Plans</h1>
-            <Badge className="bg-yellow-600 text-white">
-              <TestTube className="mr-1 h-3 w-3" />
-              TEST MODE
-            </Badge>
-          </div>
+          <h1 className="text-3xl font-bold text-white mb-2">Billing & Plans</h1>
           <p className="text-gray-400">Choose the perfect plan for your testimonial collection needs</p>
-          <p className="text-yellow-400 text-sm mt-2">⚠️ Currently in test mode - use test payment methods</p>
         </div>
 
         {/* Current Plan */}
@@ -85,7 +78,7 @@ const Billing = () => {
                 <h2 className="text-xl font-semibold text-white mb-2">Current Plan</h2>
                 <div className="flex items-center space-x-2">
                   <Badge className={isPro ? "bg-purple-600 text-white" : "bg-green-600 text-white"}>
-                    {isPro ? "Pro Plan (TEST)" : "Free Plan"}
+                    {isPro ? "Pro Plan" : "Free Plan"}
                   </Badge>
                   {isPro ? (
                     <span className="text-gray-400">Unlimited surveys, 250 responses/month</span>
@@ -157,7 +150,7 @@ const Billing = () => {
             </Badge>
             
             <div className="text-center mb-6 mt-4">
-              <h3 className="text-xl font-semibold text-white mb-2">Pro (TEST)</h3>
+              <h3 className="text-xl font-semibold text-white mb-2">Pro</h3>
               <div className="text-3xl font-bold text-white mb-2">$4</div>
               <p className="text-gray-400">per month</p>
             </div>
@@ -191,7 +184,7 @@ const Billing = () => {
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <Zap className="mr-2 h-4 w-4" />
-                Manage Test Subscription
+                Manage Subscription
               </Button>
             ) : (
               <Button 
@@ -199,11 +192,87 @@ const Billing = () => {
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <CreditCard className="mr-2 h-4 w-4" />
-                Subscribe to Pro (TEST)
+                Subscribe to Pro
               </Button>
             )}
           </Card>
         </div>
+
+        {/* Subscription Management for Pro Users */}
+        {isPro && (
+          <Card className="p-6 bg-gray-900 border border-gray-800 shadow-lg rounded-xl">
+            <h2 className="text-xl font-semibold text-white mb-4">Subscription Management</h2>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button
+                onClick={handleManageSubscription}
+                variant="outline"
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                Update Payment Method
+              </Button>
+              <Button
+                onClick={handleManageSubscription}
+                variant="outline"
+                className="border-red-600 text-red-400 hover:bg-red-900/20"
+              >
+                <Zap className="mr-2 h-4 w-4" />
+                Cancel Subscription
+              </Button>
+            </div>
+            <p className="text-gray-500 text-sm mt-2">
+              Cancellation takes effect at the end of your current billing period. No refunds for partial months.
+            </p>
+          </Card>
+        )}
+
+        {/* Support Section */}
+        <Card className="p-6 bg-gray-900 border border-gray-800 shadow-lg rounded-xl">
+          <h2 className="text-xl font-semibold text-white mb-4">Support & Contact</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-medium text-white mb-3">
+                {isPro ? "Priority Support" : "Standard Support"}
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3">
+                  <Mail className="h-5 w-5 text-purple-400" />
+                  <div>
+                    <p className="text-gray-300">Email Support</p>
+                    <a 
+                      href="mailto:your-email@proofcollector.com" 
+                      className="text-purple-400 hover:text-purple-300 text-sm"
+                    >
+                      your-email@proofcollector.com
+                    </a>
+                  </div>
+                </div>
+                {isPro && (
+                  <div className="flex items-center space-x-3">
+                    <Phone className="h-5 w-5 text-purple-400" />
+                    <div>
+                      <p className="text-gray-300">Priority Response</p>
+                      <p className="text-gray-500 text-sm">24-hour response time</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-medium text-white mb-3">Response Times</h3>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Pro users:</span>
+                  <span className="text-green-400">24 hours</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Free users:</span>
+                  <span className="text-gray-500">72 hours</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
 
         {/* Billing History */}
         <Card className="p-6 bg-gray-900 border border-gray-800 shadow-lg rounded-xl">
@@ -212,7 +281,7 @@ const Billing = () => {
             <CreditCard className="h-12 w-12 text-gray-500 mx-auto mb-4" />
             {isPro ? (
               <div>
-                <p className="text-gray-400 mb-2">Your test subscription is active</p>
+                <p className="text-gray-400 mb-2">Your subscription is active</p>
                 {subscription.subscription_end && (
                   <p className="text-gray-500 text-sm">
                     Next billing date: {new Date(subscription.subscription_end).toLocaleDateString()}
@@ -223,7 +292,7 @@ const Billing = () => {
                   variant="outline"
                   className="mt-4 border-gray-700 text-gray-300 hover:bg-gray-800"
                 >
-                  View Test Billing Details
+                  View Billing Details
                 </Button>
               </div>
             ) : (
