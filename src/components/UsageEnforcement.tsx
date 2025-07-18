@@ -18,9 +18,16 @@ export const UsageEnforcement = ({ type, children, fallback }: UsageEnforcementP
       return <>{fallback}</>;
     }
 
+    // Convert plural to singular for UpgradePrompt
+    const typeMap = {
+      'surveys': 'survey' as const,
+      'responses': 'response' as const,
+      'downloads': 'download' as const
+    };
+
     return (
       <UpgradePrompt
-        type={type}
+        type={typeMap[type]}
         currentCount={usage[type].current}
         limit={usage[type].limit}
         isPro={isPro}
