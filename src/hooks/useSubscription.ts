@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -8,7 +8,11 @@ export interface SubscriptionData {
   subscribed: boolean;
   subscription_tier: 'free' | 'pro';
   subscription_end?: string;
+  verified?: boolean; // Track if this was verified from Stripe
 }
+
+const CACHE_KEY = 'subscription_cache_v2';
+const VERIFIED_KEY = 'subscription_verified';
 
 export const useSubscription = () => {
   const { user, session } = useAuth();
@@ -18,16 +22,68 @@ export const useSubscription = () => {
     subscription_tier: 'free',
   });
   const [loading, setLoading] = useState(true);
+  const checkingRef = useRef(false);
+  const retryCountRef = useRef(0);
 
-  const checkSubscription = useCallback(async (skipLoading = false) => {
+  // Load cached subscription on mount
+  useEffect(() => {
+    const cached = localStorage.getItem(CACHE_KEY);
+    const verified = localStorage.getItem(VERIFIED_KEY);
+    
+    if (cached) {
+      try {
+        const parsedCache = JSON.parse(cached);
+        const isVerified = verified === 'true';
+        
+        // Only use cache if it's recent (30 seconds) or if it's a verified Pro status
+        const cacheAge = Date.now() - (parsedCache.cached_at || 0);
+        const shouldUseCache = cacheAge < 30000 || (isVerified && parsedCache.subscription_tier === 'pro');
+        
+        if (shouldUseCache) {
+          setSubscription({
+            subscribed: parsedCache.subscribed || false,
+            subscription_tier: parsedCache.subscription_tier || 'free',
+            subscription_end: parsedCache.subscription_end,
+            verified: isVerified,
+          });
+          
+          // If we have verified Pro status, don't show loading
+          if (isVerified && parsedCache.subscription_tier === 'pro') {
+            setLoading(false);
+          }
+        }
+      } catch (e) {
+        console.warn('Invalid subscription cache:', e);
+        localStorage.removeItem(CACHE_KEY);
+        localStorage.removeItem(VERIFIED_KEY);
+      }
+    }
+  }, []);
+
+  const checkSubscription = useCallback(async (skipLoading = false, forceCheck = false) => {
     if (!user || !session) {
       setSubscription({ subscribed: false, subscription_tier: 'free' });
       setLoading(false);
-      return;
+      return { subscribed: false, subscription_tier: 'free' as const };
+    }
+
+    // Prevent multiple simultaneous checks
+    if (checkingRef.current && !forceCheck) {
+      return subscription;
+    }
+
+    // Don't overwrite verified Pro status unless forced
+    const verified = localStorage.getItem(VERIFIED_KEY) === 'true';
+    if (verified && subscription.subscription_tier === 'pro' && !forceCheck) {
+      setLoading(false);
+      return subscription;
     }
 
     try {
+      checkingRef.current = true;
       if (!skipLoading) setLoading(true);
+      
+      console.log('🔄 Checking subscription status...');
       
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
@@ -35,29 +91,86 @@ export const useSubscription = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Subscription check error:', error);
+        
+        // Retry logic - max 3 attempts
+        if (retryCountRef.current < 3) {
+          retryCountRef.current++;
+          console.log(`🔄 Retrying subscription check (${retryCountRef.current}/3)...`);
+          
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = Math.pow(2, retryCountRef.current - 1) * 1000;
+          setTimeout(() => {
+            checkSubscription(skipLoading, forceCheck);
+          }, delay);
+          return subscription;
+        }
+        
+        // After max retries, don't overwrite verified Pro status
+        if (verified && subscription.subscription_tier === 'pro') {
+          console.log('⚠️ Keeping verified Pro status despite API errors');
+          setLoading(false);
+          return subscription;
+        }
+        
+        throw error;
+      }
 
-      const newSubscription = {
+      // Reset retry counter on success
+      retryCountRef.current = 0;
+
+      const newSubscription: SubscriptionData = {
         subscribed: data.subscribed || false,
         subscription_tier: data.subscription_tier || 'free',
         subscription_end: data.subscription_end,
+        verified: data.subscription_tier === 'pro', // Mark Pro as verified
       };
+
+      console.log('✅ Subscription status updated:', newSubscription);
 
       setSubscription(newSubscription);
       
-      // Store in localStorage for faster initial loads
-      localStorage.setItem('subscription_cache', JSON.stringify({
+      // Cache the result with timestamp
+      const cacheData = {
         ...newSubscription,
         cached_at: Date.now(),
-      }));
+      };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+      
+      // Mark as verified if Pro
+      if (newSubscription.subscription_tier === 'pro') {
+        localStorage.setItem(VERIFIED_KEY, 'true');
+        console.log('🎉 Pro subscription verified and cached!');
+      } else {
+        localStorage.removeItem(VERIFIED_KEY);
+      }
 
+      return newSubscription;
     } catch (error) {
-      console.error('Error checking subscription:', error);
+      console.error('❌ Error checking subscription:', error);
+      
+      // Don't overwrite verified Pro status on errors
+      const verified = localStorage.getItem(VERIFIED_KEY) === 'true';
+      if (verified && subscription.subscription_tier === 'pro') {
+        console.log('⚠️ Keeping verified Pro status despite error');
+        setLoading(false);
+        return subscription;
+      }
+      
+      // Only fallback to free if we don't have verified Pro status
       setSubscription({ subscribed: false, subscription_tier: 'free' });
+      
+      toast({
+        title: "Connection Issue",
+        description: "Having trouble checking your subscription status. Please refresh the page.",
+        variant: "destructive",
+      });
     } finally {
+      checkingRef.current = false;
       setLoading(false);
     }
-  }, [user, session]);
+  }, [user, session, subscription, toast]);
 
   const createCheckout = useCallback(async () => {
     if (!session) {
@@ -86,21 +199,24 @@ export const useSubscription = () => {
       // Open Stripe checkout in a new tab
       const checkoutWindow = window.open(data.url, '_blank');
       
-      // Poll for subscription changes after checkout
-      const pollForSubscription = () => {
-        const interval = setInterval(async () => {
-          if (checkoutWindow?.closed) {
-            // Window closed, check subscription immediately
-            await checkSubscription(true);
-            clearInterval(interval);
-          }
-        }, 1000);
+      if (checkoutWindow) {
+        // Monitor window close and URL changes for instant sync
+        const pollForSubscription = () => {
+          const interval = setInterval(async () => {
+            if (checkoutWindow.closed) {
+              console.log('🔄 Checkout window closed - checking subscription...');
+              // Force immediate check when window closes
+              await checkSubscription(false, true);
+              clearInterval(interval);
+            }
+          }, 1000);
 
-        // Stop polling after 5 minutes
-        setTimeout(() => clearInterval(interval), 300000);
-      };
+          // Stop polling after 10 minutes
+          setTimeout(() => clearInterval(interval), 600000);
+        };
 
-      pollForSubscription();
+        pollForSubscription();
+      }
 
     } catch (error) {
       console.error('Error creating checkout:', error);
@@ -148,40 +264,35 @@ export const useSubscription = () => {
     }
   }, [session, toast]);
 
+  // Auto-check subscription when auth state is ready
   useEffect(() => {
-    // Try to load from cache first for faster initial load
-    const cached = localStorage.getItem('subscription_cache');
-    if (cached) {
-      try {
-        const parsedCache = JSON.parse(cached);
-        const cacheAge = Date.now() - parsedCache.cached_at;
-        
-        // Use cache if less than 30 seconds old
-        if (cacheAge < 30000) {
-          setSubscription({
-            subscribed: parsedCache.subscribed,
-            subscription_tier: parsedCache.subscription_tier,
-            subscription_end: parsedCache.subscription_end,
-          });
-        }
-      } catch (e) {
-        // Invalid cache, ignore
-      }
+    if (user && session && !checkingRef.current) {
+      // Delay slightly to ensure auth is fully ready
+      const timer = setTimeout(() => {
+        checkSubscription();
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
+  }, [user, session, checkSubscription]);
 
-    checkSubscription();
-  }, [checkSubscription]);
-
-  // Listen for URL changes to detect returning from Stripe
+  // Listen for window focus to detect return from Stripe
   useEffect(() => {
     const handleFocus = () => {
-      // When window regains focus, check subscription status
-      checkSubscription(true);
+      // Check if we might be returning from Stripe
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasStripeParams = urlParams.has('success') || urlParams.has('canceled');
+      
+      if (hasStripeParams || document.visibilityState === 'visible') {
+        console.log('🔄 Window focused - checking subscription...');
+        checkSubscription(true, true); // Force check on focus
+      }
     };
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        checkSubscription(true);
+        console.log('🔄 Page visible - checking subscription...');
+        checkSubscription(true, true);
       }
     };
 

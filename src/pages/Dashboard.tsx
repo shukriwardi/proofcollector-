@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { AppLayout } from "@/components/AppLayout";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,13 +35,27 @@ const Dashboard = () => {
   useEffect(() => {
     if (user) {
       fetchSurveys();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
   const fetchSurveys = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    
     try {
-      // Optimize query to reduce loading time
-      const { data: surveysData, error } = await supabase
+      setLoading(true);
+      console.log('📊 Fetching surveys for user:', user?.id);
+      
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Survey fetch timeout')), 15000);
+      });
+
+      const surveysPromise = supabase
         .from('surveys')
         .select(`
           id,
@@ -54,21 +67,38 @@ const Dashboard = () => {
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      const { data, error } = await Promise.race([
+        surveysPromise,
+        timeoutPromise
+      ]) as any;
 
-      const surveysWithCounts = surveysData?.map(survey => ({
+      if (error) {
+        console.error('❌ Error fetching surveys:', error);
+        throw error;
+      }
+
+      const surveysWithCounts = data?.map((survey: any) => ({
         ...survey,
         testimonial_count: survey.testimonials?.[0]?.count || 0
       })) || [];
 
+      console.log('✅ Surveys fetched:', surveysWithCounts.length);
       setSurveys(surveysWithCounts);
     } catch (error) {
-      console.error('Error fetching surveys:', error);
+      console.error('❌ Error fetching surveys:', error);
+      
+      // Show helpful error message
+      const isTimeout = error instanceof Error && error.message.includes('timeout');
       toast({
-        title: "Error",
-        description: getGenericErrorMessage('database'),
+        title: isTimeout ? "Loading timeout" : "Error",
+        description: isTimeout 
+          ? "Surveys are taking longer to load. Please refresh the page." 
+          : getGenericErrorMessage('database'),
         variant: "destructive",
       });
+      
+      // Don't leave user stuck - show empty state
+      setSurveys([]);
     } finally {
       setLoading(false);
     }
@@ -193,6 +223,7 @@ const Dashboard = () => {
 
   const totalTestimonials = surveys.reduce((sum, survey) => sum + (survey.testimonial_count || 0), 0);
 
+  // Don't show loading spinner forever
   if (loading) {
     return (
       <div className="min-h-screen bg-black">

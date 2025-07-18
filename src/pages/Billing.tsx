@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,31 +16,54 @@ const Billing = () => {
   const [searchParams] = useSearchParams();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasHandledStripeReturn, setHasHandledStripeReturn] = useState(false);
 
+  // Handle Stripe return flow
   useEffect(() => {
-    // Handle success/cancel from Stripe redirect
-    if (searchParams.get('success') === 'true') {
-      toast({
-        title: "Payment successful!",
-        description: "Your subscription has been activated. Refreshing subscription status...",
-      });
-      // Immediate refresh after payment success
-      setTimeout(() => {
-        checkSubscription();
-      }, 1000);
+    const success = searchParams.get('success');
+    const canceled = searchParams.get('canceled');
+    
+    if ((success === 'true' || canceled === 'true') && !hasHandledStripeReturn) {
+      setHasHandledStripeReturn(true);
       
-      // Additional refresh to ensure sync
-      setTimeout(() => {
-        checkSubscription();
-      }, 3000);
-    } else if (searchParams.get('canceled') === 'true') {
-      toast({
-        title: "Payment canceled",
-        description: "Your subscription was not activated.",
-        variant: "destructive",
-      });
+      if (success === 'true') {
+        console.log('🎉 Payment successful - forcing subscription check...');
+        
+        toast({
+          title: "🎉 Payment successful!",
+          description: "Activating your Pro subscription...",
+        });
+        
+        // Force immediate subscription check multiple times to ensure sync
+        const forceSync = async () => {
+          for (let i = 0; i < 3; i++) {
+            console.log(`🔄 Sync attempt ${i + 1}/3...`);
+            await checkSubscription(false, true);
+            if (i < 2) {
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s between attempts
+            }
+          }
+        };
+        
+        forceSync();
+        
+        // Clean up URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+        
+      } else if (canceled === 'true') {
+        toast({
+          title: "Payment canceled",
+          description: "Your subscription was not activated.",
+          variant: "destructive",
+        });
+        
+        // Clean up URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
     }
-  }, [searchParams, toast, checkSubscription]);
+  }, [searchParams, toast, checkSubscription, hasHandledStripeReturn]);
 
   const handleSubscribe = async () => {
     if (!user) {
@@ -80,12 +104,14 @@ const Billing = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await checkSubscription();
+      console.log('🔄 Manual refresh triggered...');
+      await checkSubscription(false, true); // Force check
       toast({
-        title: "Subscription status refreshed",
+        title: "Status refreshed",
         description: "Your subscription information has been updated.",
       });
     } catch (error) {
+      console.error('Refresh failed:', error);
       toast({
         title: "Refresh failed",
         description: "Failed to refresh subscription status. Please try again.",
@@ -97,6 +123,20 @@ const Billing = () => {
   };
 
   const isPro = subscription.subscription_tier === 'pro';
+
+  // Show loading state only initially, not after we have data
+  if (loading && !subscription.subscription_tier) {
+    return (
+      <div className="min-h-screen bg-black">
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
+            <p className="text-white">Loading billing information...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black">
@@ -116,6 +156,9 @@ const Billing = () => {
                 <div className="flex items-center space-x-2">
                   <Badge className={isPro ? "bg-purple-600 text-white" : "bg-green-600 text-white"}>
                     {isPro ? "Pro Plan" : "Free Plan"}
+                    {subscription.verified && isPro && (
+                      <span className="ml-1">✓</span>
+                    )}
                   </Badge>
                   {isPro ? (
                     <span className="text-gray-400">Unlimited surveys, 250 responses/month</span>
@@ -124,20 +167,22 @@ const Billing = () => {
                   )}
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-white">${isPro ? "4" : "0"}</p>
-                <p className="text-gray-400">per month</p>
+              <div className="flex items-center space-x-4">
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-white">${isPro ? "4" : "0"}</p>
+                  <p className="text-gray-400">per month</p>
+                </div>
+                <Button
+                  onClick={handleRefresh}
+                  variant="outline"
+                  size="sm"
+                  disabled={isRefreshing}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Checking...' : 'Refresh'}
+                </Button>
               </div>
-              <Button
-                onClick={handleRefresh}
-                variant="outline"
-                size="sm"
-                disabled={loading || isRefreshing}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
-              >
-                <RefreshCw className={`mr-2 h-4 w-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
             </div>
           </Card>
         )}

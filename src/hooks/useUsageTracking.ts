@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,8 @@ interface UsageData {
   downloads: { current: number; limit: number };
 }
 
+const USAGE_CACHE_KEY = 'usage_cache_v2';
+
 export const useUsageTracking = () => {
   const { user } = useAuth();
   const { subscription } = useSubscription();
@@ -21,22 +23,43 @@ export const useUsageTracking = () => {
     downloads: { current: 0, limit: 3 },
   });
   const [loading, setLoading] = useState(true);
+  const fetchingRef = useRef(false);
 
   const isPro = subscription.subscription_tier === 'pro';
 
   const fetchUsage = useCallback(async () => {
-    if (!user) {
+    if (!user || fetchingRef.current) {
       setLoading(false);
       return;
     }
 
     try {
+      fetchingRef.current = true;
       setLoading(true);
+      
+      // Load from cache first
+      const cached = localStorage.getItem(USAGE_CACHE_KEY);
+      if (cached) {
+        try {
+          const parsedCache = JSON.parse(cached);
+          const cacheAge = Date.now() - (parsedCache.cached_at || 0);
+          
+          // Use cache if less than 1 minute old
+          if (cacheAge < 60000) {
+            setUsage(parsedCache.usage);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.warn('Invalid usage cache:', e);
+        }
+      }
+
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      // Use Promise.all for parallel requests to speed up loading
-      const [surveysResult, responsesResult] = await Promise.all([
+      // Use Promise.all for parallel requests with timeout
+      const fetchPromises = [
         supabase
           .from('surveys')
           .select('*', { count: 'exact', head: true })
@@ -48,27 +71,71 @@ export const useUsageTracking = () => {
           .select('surveys!inner(*)', { count: 'exact', head: true })
           .eq('surveys.user_id', user.id)
           .gte('created_at', startOfMonth.toISOString())
-      ]);
+      ];
+
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Usage fetch timeout')), 10000);
+      });
+
+      const [surveysResult, responsesResult] = await Promise.race([
+        Promise.all(fetchPromises),
+        timeoutPromise
+      ]) as any[];
 
       // Set limits based on subscription tier
       const limits = isPro
         ? { surveys: Infinity, responses: 250, downloads: Infinity }
         : { surveys: 2, responses: 10, downloads: 3 };
 
-      setUsage({
+      const newUsage = {
         surveys: { current: surveysResult.count || 0, limit: limits.surveys },
         responses: { current: responsesResult.count || 0, limit: limits.responses },
         downloads: { current: 0, limit: limits.downloads }, // TODO: Track downloads
-      });
+      };
+
+      setUsage(newUsage);
+      
+      // Cache the result
+      localStorage.setItem(USAGE_CACHE_KEY, JSON.stringify({
+        usage: newUsage,
+        cached_at: Date.now(),
+      }));
+
     } catch (error) {
       console.error('Error fetching usage:', error);
+      
+      // Don't show error toast for timeout - just use defaults
+      if (error instanceof Error && !error.message.includes('timeout')) {
+        toast({
+          title: "Usage data unavailable",
+          description: "Showing estimated limits. Please refresh if needed.",
+          variant: "destructive",
+        });
+      }
+      
+      // Fallback to default limits
+      const limits = isPro
+        ? { surveys: Infinity, responses: 250, downloads: Infinity }
+        : { surveys: 2, responses: 10, downloads: 3 };
+
+      setUsage({
+        surveys: { current: 0, limit: limits.surveys },
+        responses: { current: 0, limit: limits.responses },
+        downloads: { current: 0, limit: limits.downloads },
+      });
     } finally {
+      fetchingRef.current = false;
       setLoading(false);
     }
-  }, [user, isPro]);
+  }, [user, isPro, toast]);
 
   useEffect(() => {
-    fetchUsage();
+    if (user) {
+      fetchUsage();
+    } else {
+      setLoading(false);
+    }
   }, [fetchUsage]);
 
   const checkLimit = useCallback((type: 'surveys' | 'responses' | 'downloads'): boolean => {
