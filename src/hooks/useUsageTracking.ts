@@ -35,19 +35,20 @@ export const useUsageTracking = () => {
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      // Get surveys count for this month
-      const { count: surveysCount } = await supabase
-        .from('surveys')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', startOfMonth.toISOString());
-
-      // Get responses count for this month
-      const { count: responsesCount } = await supabase
-        .from('testimonials')
-        .select('surveys!inner(*)', { count: 'exact', head: true })
-        .eq('surveys.user_id', user.id)
-        .gte('created_at', startOfMonth.toISOString());
+      // Use Promise.all for parallel requests to speed up loading
+      const [surveysResult, responsesResult] = await Promise.all([
+        supabase
+          .from('surveys')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', startOfMonth.toISOString()),
+        
+        supabase
+          .from('testimonials')
+          .select('surveys!inner(*)', { count: 'exact', head: true })
+          .eq('surveys.user_id', user.id)
+          .gte('created_at', startOfMonth.toISOString())
+      ]);
 
       // Set limits based on subscription tier
       const limits = isPro
@@ -55,8 +56,8 @@ export const useUsageTracking = () => {
         : { surveys: 2, responses: 10, downloads: 3 };
 
       setUsage({
-        surveys: { current: surveysCount || 0, limit: limits.surveys },
-        responses: { current: responsesCount || 0, limit: limits.responses },
+        surveys: { current: surveysResult.count || 0, limit: limits.surveys },
+        responses: { current: responsesResult.count || 0, limit: limits.responses },
         downloads: { current: 0, limit: limits.downloads }, // TODO: Track downloads
       });
     } catch (error) {

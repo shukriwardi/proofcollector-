@@ -23,10 +23,15 @@ const Billing = () => {
         title: "Payment successful!",
         description: "Your subscription has been activated. Refreshing subscription status...",
       });
-      // Refresh subscription status after payment
+      // Immediate refresh after payment success
       setTimeout(() => {
         checkSubscription();
-      }, 2000);
+      }, 1000);
+      
+      // Additional refresh to ensure sync
+      setTimeout(() => {
+        checkSubscription();
+      }, 3000);
     } else if (searchParams.get('canceled') === 'true') {
       toast({
         title: "Payment canceled",
