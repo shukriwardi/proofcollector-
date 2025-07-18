@@ -240,10 +240,10 @@ const Billing = () => {
                   <div>
                     <p className="text-gray-300">Email Support</p>
                     <a 
-                      href="mailto:your-email@proofcollector.com" 
+                      href="mailto:shukriwardi01@gmail.com" 
                       className="text-purple-400 hover:text-purple-300 text-sm"
                     >
-                      your-email@proofcollector.com
+                      shukriwardi01@gmail.com
                     </a>
                   </div>
                 </div>

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface UsageData {
   surveys: { current: number; limit: number };
@@ -13,6 +14,7 @@ interface UsageData {
 export const useUsageTracking = () => {
   const { user } = useAuth();
   const { subscription } = useSubscription();
+  const { toast } = useToast();
   const [usage, setUsage] = useState<UsageData>({
     surveys: { current: 0, limit: 2 },
     responses: { current: 0, limit: 10 },
@@ -78,11 +80,41 @@ export const useUsageTracking = () => {
     return !checkLimit(type);
   };
 
+  const showLimitAlert = (type: 'surveys' | 'responses' | 'downloads') => {
+    if (!isPro) {
+      // Free user reached limit
+      toast({
+        title: "🔒 Monthly Limit Reached",
+        description: "You've reached your monthly free limit. Upgrade for just $4/month to unlock unlimited surveys, 250 responses, and more — or wait until next month to reset.",
+        variant: "destructive",
+        duration: 8000,
+      });
+    } else if (type === 'responses') {
+      // Pro user reached response limit
+      toast({
+        title: "⚠️ Response Limit Reached",
+        description: "You've reached the 250 response limit for your Pro plan this month. Please wait for your next billing cycle for responses to reset.",
+        variant: "destructive",
+        duration: 8000,
+      });
+    }
+  };
+
+  const enforceLimit = (type: 'surveys' | 'responses' | 'downloads'): boolean => {
+    if (!canPerformAction(type)) {
+      showLimitAlert(type);
+      return false; // Block the action
+    }
+    return true; // Allow the action
+  };
+
   return {
     usage,
     loading,
     checkLimit,
     canPerformAction,
+    enforceLimit,
+    showLimitAlert,
     isPro,
   };
 };
