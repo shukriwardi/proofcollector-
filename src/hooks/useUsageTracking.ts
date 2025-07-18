@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,63 +24,64 @@ export const useUsageTracking = () => {
 
   const isPro = subscription.subscription_tier === 'pro';
 
-  useEffect(() => {
+  const fetchUsage = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
     }
 
-    const fetchUsage = async () => {
-      try {
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    try {
+      setLoading(true);
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        // Get surveys count for this month
-        const { count: surveysCount } = await supabase
-          .from('surveys')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .gte('created_at', startOfMonth.toISOString());
+      // Get surveys count for this month
+      const { count: surveysCount } = await supabase
+        .from('surveys')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', startOfMonth.toISOString());
 
-        // Get responses count for this month
-        const { count: responsesCount } = await supabase
-          .from('testimonials')
-          .select('surveys!inner(*)', { count: 'exact', head: true })
-          .eq('surveys.user_id', user.id)
-          .gte('created_at', startOfMonth.toISOString());
+      // Get responses count for this month
+      const { count: responsesCount } = await supabase
+        .from('testimonials')
+        .select('surveys!inner(*)', { count: 'exact', head: true })
+        .eq('surveys.user_id', user.id)
+        .gte('created_at', startOfMonth.toISOString());
 
-        // Set limits based on subscription tier
-        const limits = isPro
-          ? { surveys: Infinity, responses: 250, downloads: Infinity }
-          : { surveys: 2, responses: 10, downloads: 3 };
+      // Set limits based on subscription tier
+      const limits = isPro
+        ? { surveys: Infinity, responses: 250, downloads: Infinity }
+        : { surveys: 2, responses: 10, downloads: 3 };
 
-        setUsage({
-          surveys: { current: surveysCount || 0, limit: limits.surveys },
-          responses: { current: responsesCount || 0, limit: limits.responses },
-          downloads: { current: 0, limit: limits.downloads }, // TODO: Track downloads
-        });
-      } catch (error) {
-        console.error('Error fetching usage:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsage();
+      setUsage({
+        surveys: { current: surveysCount || 0, limit: limits.surveys },
+        responses: { current: responsesCount || 0, limit: limits.responses },
+        downloads: { current: 0, limit: limits.downloads }, // TODO: Track downloads
+      });
+    } catch (error) {
+      console.error('Error fetching usage:', error);
+    } finally {
+      setLoading(false);
+    }
   }, [user, isPro]);
 
-  const checkLimit = (type: 'surveys' | 'responses' | 'downloads'): boolean => {
-    return usage[type].current >= usage[type].limit;
-  };
+  useEffect(() => {
+    fetchUsage();
+  }, [fetchUsage]);
 
-  const canPerformAction = (type: 'surveys' | 'responses' | 'downloads'): boolean => {
+  const checkLimit = useCallback((type: 'surveys' | 'responses' | 'downloads'): boolean => {
+    return usage[type].current >= usage[type].limit;
+  }, [usage]);
+
+  const canPerformAction = useCallback((type: 'surveys' | 'responses' | 'downloads'): boolean => {
     if (isPro && (type === 'surveys' || type === 'downloads')) {
       return true; // Unlimited for Pro users
     }
     return !checkLimit(type);
-  };
+  }, [isPro, checkLimit]);
 
-  const showLimitAlert = (type: 'surveys' | 'responses' | 'downloads') => {
+  const showLimitAlert = useCallback((type: 'surveys' | 'responses' | 'downloads') => {
     if (!isPro) {
       // Free user reached limit
       toast({
@@ -98,15 +99,15 @@ export const useUsageTracking = () => {
         duration: 8000,
       });
     }
-  };
+  }, [isPro, toast]);
 
-  const enforceLimit = (type: 'surveys' | 'responses' | 'downloads'): boolean => {
+  const enforceLimit = useCallback((type: 'surveys' | 'responses' | 'downloads'): boolean => {
     if (!canPerformAction(type)) {
       showLimitAlert(type);
       return false; // Block the action
     }
     return true; // Allow the action
-  };
+  }, [canPerformAction, showLimitAlert]);
 
   return {
     usage,
@@ -116,5 +117,6 @@ export const useUsageTracking = () => {
     enforceLimit,
     showLimitAlert,
     isPro,
+    refreshUsage: fetchUsage,
   };
 };

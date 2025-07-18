@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,13 +6,15 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const Billing = () => {
   const { user } = useAuth();
   const { subscription, loading, createCheckout, openCustomerPortal, checkSubscription } = useSubscription();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     // Handle success/cancel from Stripe redirect
@@ -35,7 +36,7 @@ const Billing = () => {
     }
   }, [searchParams, toast, checkSubscription]);
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
     if (!user) {
       toast({
         title: "Sign in required",
@@ -44,10 +45,16 @@ const Billing = () => {
       });
       return;
     }
-    createCheckout();
+    
+    setIsProcessing(true);
+    try {
+      await createCheckout();
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleManageSubscription = () => {
+  const handleManageSubscription = async () => {
     if (!user) {
       toast({
         title: "Sign in required",
@@ -56,7 +63,32 @@ const Billing = () => {
       });
       return;
     }
-    openCustomerPortal();
+    
+    setIsProcessing(true);
+    try {
+      await openCustomerPortal();
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await checkSubscription();
+      toast({
+        title: "Subscription status refreshed",
+        description: "Your subscription information has been updated.",
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh failed",
+        description: "Failed to refresh subscription status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const isPro = subscription.subscription_tier === 'pro';
@@ -92,13 +124,13 @@ const Billing = () => {
                 <p className="text-gray-400">per month</p>
               </div>
               <Button
-                onClick={checkSubscription}
+                onClick={handleRefresh}
                 variant="outline"
                 size="sm"
-                disabled={loading}
+                disabled={loading || isRefreshing}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
-                <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`mr-2 h-4 w-4 ${(loading || isRefreshing) ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
             </div>
@@ -181,18 +213,20 @@ const Billing = () => {
             {isPro ? (
               <Button 
                 onClick={handleManageSubscription}
+                disabled={isProcessing}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <Zap className="mr-2 h-4 w-4" />
-                Manage Subscription
+                {isProcessing ? "Loading..." : "Manage Subscription"}
               </Button>
             ) : (
               <Button 
                 onClick={handleSubscribe}
+                disabled={isProcessing}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white"
               >
                 <CreditCard className="mr-2 h-4 w-4" />
-                Subscribe to Pro
+                {isProcessing ? "Loading..." : "Subscribe to Pro"}
               </Button>
             )}
           </Card>
@@ -205,19 +239,21 @@ const Billing = () => {
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={handleManageSubscription}
+                disabled={isProcessing}
                 variant="outline"
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <CreditCard className="mr-2 h-4 w-4" />
-                Update Payment Method
+                {isProcessing ? "Loading..." : "Update Payment Method"}
               </Button>
               <Button
                 onClick={handleManageSubscription}
+                disabled={isProcessing}
                 variant="outline"
                 className="border-red-600 text-red-400 hover:bg-red-900/20"
               >
                 <Zap className="mr-2 h-4 w-4" />
-                Cancel Subscription
+                {isProcessing ? "Loading..." : "Cancel Subscription"}
               </Button>
             </div>
             <p className="text-gray-500 text-sm mt-2">
@@ -289,10 +325,11 @@ const Billing = () => {
                 )}
                 <Button
                   onClick={handleManageSubscription}
+                  disabled={isProcessing}
                   variant="outline"
                   className="mt-4 border-gray-700 text-gray-300 hover:bg-gray-800"
                 >
-                  View Billing Details
+                  {isProcessing ? "Loading..." : "View Billing Details"}
                 </Button>
               </div>
             ) : (

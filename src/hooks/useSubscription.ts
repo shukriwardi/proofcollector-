@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -19,7 +19,7 @@ export const useSubscription = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  const checkSubscription = async () => {
+  const checkSubscription = useCallback(async () => {
     if (!user || !session) {
       setSubscription({ subscribed: false, subscription_tier: 'free' });
       setLoading(false);
@@ -27,6 +27,7 @@ export const useSubscription = () => {
     }
 
     try {
+      setLoading(true);
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -46,9 +47,9 @@ export const useSubscription = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, session]);
 
-  const createCheckout = async () => {
+  const createCheckout = useCallback(async () => {
     if (!session) {
       toast({
         title: "Authentication required",
@@ -59,6 +60,11 @@ export const useSubscription = () => {
     }
 
     try {
+      toast({
+        title: "Redirecting to checkout...",
+        description: "Please wait while we set up your payment",
+      });
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -77,9 +83,9 @@ export const useSubscription = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [session, toast]);
 
-  const openCustomerPortal = async () => {
+  const openCustomerPortal = useCallback(async () => {
     if (!session) {
       toast({
         title: "Authentication required",
@@ -90,6 +96,11 @@ export const useSubscription = () => {
     }
 
     try {
+      toast({
+        title: "Opening customer portal...",
+        description: "Please wait while we redirect you",
+      });
+
       const { data, error } = await supabase.functions.invoke('customer-portal', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -108,11 +119,11 @@ export const useSubscription = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [session, toast]);
 
   useEffect(() => {
     checkSubscription();
-  }, [user, session]);
+  }, [checkSubscription]);
 
   return {
     subscription,

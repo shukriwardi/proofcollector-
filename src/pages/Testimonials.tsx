@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -9,6 +9,7 @@ import { TestimonialList } from "@/components/testimonials/TestimonialList";
 import { ViewTestimonialDialog } from "@/components/testimonials/ViewTestimonialDialog";
 import { EmbedCodeDialog } from "@/components/testimonials/EmbedCodeDialog";
 import { useTestimonialUtils } from "@/components/testimonials/TestimonialUtils";
+import { LoadingSpinner } from "@/components/testimonials/LoadingSpinner";
 
 interface Testimonial {
   id: string;
@@ -34,13 +35,9 @@ const Testimonials = () => {
   const { toast } = useToast();
   const { downloadTestimonialAsImage, copyEmbedCode } = useTestimonialUtils();
 
-  useEffect(() => {
-    if (user) {
-      fetchTestimonials();
-    }
-  }, [user]);
-
   const fetchTestimonials = async () => {
+    if (!user) return;
+    
     try {
       console.log('Fetching testimonials for user:', user?.id);
       
@@ -78,6 +75,12 @@ const Testimonials = () => {
     }
   };
 
+  useEffect(() => {
+    if (user) {
+      fetchTestimonials();
+    }
+  }, [user]);
+
   const handleDeleteTestimonial = async (testimonialId: string) => {
     try {
       const { error } = await supabase
@@ -112,17 +115,16 @@ const Testimonials = () => {
     setEmbedDialogOpen(true);
   };
 
-  const totalTestimonials = testimonials.length;
-  const uniqueSurveys = new Set(testimonials.map(t => t.survey.id)).size;
+  const stats = useMemo(() => ({
+    totalTestimonials: testimonials.length,
+    uniqueSurveys: new Set(testimonials.map(t => t.survey.id)).size,
+  }), [testimonials]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-black">
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto mb-4"></div>
-            <p className="text-gray-400">Loading testimonials...</p>
-          </div>
+          <LoadingSpinner message="Loading testimonials..." />
         </div>
       </div>
     );
@@ -142,8 +144,8 @@ const Testimonials = () => {
         />
 
         <TestimonialStats 
-          totalTestimonials={totalTestimonials} 
-          uniqueSurveys={uniqueSurveys} 
+          totalTestimonials={stats.totalTestimonials} 
+          uniqueSurveys={stats.uniqueSurveys} 
         />
 
         <TestimonialList
