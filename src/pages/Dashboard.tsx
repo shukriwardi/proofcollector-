@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -152,7 +151,7 @@ const Dashboard = () => {
     }
 
     try {
-      setCreatingsurvey(true);
+      setCreatingSurvey(true);
       console.log('🔄 Creating survey...');
 
       // Sanitize form data
@@ -192,9 +191,9 @@ const Dashboard = () => {
         variant: "destructive",
       });
     } finally {
-      setCreatingsurvey(false);
+      setCreatingSurvey(false);
     }
-  }, [creatingsurvey, validateForm, user?.id, formData, toast]);
+  }, [creatingSurvey, validateForm, user?.id, formData, toast]);
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -268,7 +267,7 @@ const Dashboard = () => {
             rateLimited={rateLimited}
             onSubmit={handleCreateSurvey}
             onChange={handleChange}
-            loading={creatingsurvey}
+            loading={creatingSurvey}
           />
         </div>
 
@@ -295,7 +294,7 @@ const Dashboard = () => {
             onCopyLink={copyToClipboard}
             onShareLink={shareLink}
             generateSurveyUrl={generateSurveyUrl}
-            loading={creatingsurvey}
+            loading={creatingSurvey}
           />
         </div>
       </div>
