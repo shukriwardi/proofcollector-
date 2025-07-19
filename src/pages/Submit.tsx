@@ -73,13 +73,13 @@ const Submit = () => {
       setError(null);
 
       // Create a timeout promise that rejects after 8 seconds
-      const timeoutPromise = new Promise((_, reject) => {
+      const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
           reject(new Error('Request timed out - please try again'));
         }, 8000);
       });
 
-      // Create the query promise
+      // Create the query promise with proper typing
       const queryPromise = supabase
         .from('surveys')
         .select('id, title, question, user_id, created_at')
@@ -92,28 +92,24 @@ const Submit = () => {
       // Clear timeout since query completed
       clearTimeout(timeoutId);
       
-      // Type guard to ensure result is from Supabase query
-      if (result && typeof result === 'object' && 'data' in result) {
-        const { data, error: fetchError } = result;
+      // Handle the Supabase response
+      const { data, error: fetchError } = result;
 
-        if (fetchError) {
-          console.error('❌ Supabase error:', fetchError);
-          throw new Error('Failed to load survey');
-        }
-
-        if (!data) {
-          console.log('📭 No survey found with ID:', surveyId);
-          setError('Survey not found');
-          setSurvey(null);
-          return;
-        }
-
-        console.log('✅ Survey loaded successfully:', data);
-        setSurvey(data);
-        setError(null);
-      } else {
-        throw new Error('Invalid response from server');
+      if (fetchError) {
+        console.error('❌ Supabase error:', fetchError);
+        throw new Error('Failed to load survey');
       }
+
+      if (!data) {
+        console.log('📭 No survey found with ID:', surveyId);
+        setError('Survey not found');
+        setSurvey(null);
+        return;
+      }
+
+      console.log('✅ Survey loaded successfully:', data);
+      setSurvey(data as Survey);
+      setError(null);
     } catch (err: any) {
       console.error('💥 Error fetching survey:', err);
       if (err.message?.includes('timed out')) {
