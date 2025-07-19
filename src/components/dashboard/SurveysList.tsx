@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, Copy, ExternalLink, Plus, Calendar, BarChart } from "lucide-react";
 import { CreateSurveyDialog } from "./CreateSurveyDialog";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { type SurveyFormData } from "@/lib/validation";
 
 interface Survey {
@@ -27,6 +26,7 @@ interface SurveysListProps {
   onCopyLink: (url: string) => void;
   onShareLink: (url: string, title: string) => void;
   generateSurveyUrl: (surveyId: string) => string;
+  loading?: boolean;
 }
 
 export const SurveysList = ({
@@ -40,7 +40,8 @@ export const SurveysList = ({
   onChange,
   onCopyLink,
   onShareLink,
-  generateSurveyUrl
+  generateSurveyUrl,
+  loading = false
 }: SurveysListProps) => {
   if (surveys.length === 0) {
     return (
@@ -60,6 +61,7 @@ export const SurveysList = ({
           rateLimited={rateLimited}
           onSubmit={onCreateSurvey}
           onChange={onChange}
+          loading={loading}
         />
       </Card>
     );

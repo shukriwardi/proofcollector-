@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,19 +28,18 @@ const Dashboard = () => {
   const [errors, setErrors] = useState<Partial<SurveyFormData>>({});
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [creatingSurvey, setCreatingSurvey] = useState(false);
   const [rateLimited, setRateLimited] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      fetchSurveys();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
+  // Memoize survey stats to prevent recalculation on every render
+  const totalTestimonials = useMemo(() => 
+    surveys.reduce((sum, survey) => sum + (survey.testimonial_count || 0), 0), 
+    [surveys]
+  );
 
-  const fetchSurveys = async () => {
+  const fetchSurveys = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
@@ -50,61 +49,65 @@ const Dashboard = () => {
       setLoading(true);
       console.log('📊 Fetching surveys for user:', user?.id);
       
-      // Add timeout to prevent infinite loading
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Survey fetch timeout')), 15000);
-      });
-
-      const surveysPromise = supabase
+      // Simplified query without complex joins to improve performance
+      const { data, error } = await supabase
         .from('surveys')
-        .select(`
-          id,
-          title,
-          question,
-          created_at,
-          testimonials(count)
-        `)
+        .select('id, title, question, created_at')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
-
-      const { data, error } = await Promise.race([
-        surveysPromise,
-        timeoutPromise
-      ]) as any;
 
       if (error) {
         console.error('❌ Error fetching surveys:', error);
         throw error;
       }
 
-      const surveysWithCounts = data?.map((survey: any) => ({
-        ...survey,
-        testimonial_count: survey.testimonials?.[0]?.count || 0
-      })) || [];
+      // Get testimonial counts in a separate, batched query
+      if (data && data.length > 0) {
+        const surveyIds = data.map(s => s.id);
+        const { data: testimonialCounts } = await supabase
+          .from('testimonials')
+          .select('survey_id')
+          .in('survey_id', surveyIds);
 
-      console.log('✅ Surveys fetched:', surveysWithCounts.length);
-      setSurveys(surveysWithCounts);
+        const countMap = testimonialCounts?.reduce((acc, t) => {
+          acc[t.survey_id] = (acc[t.survey_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+
+        const surveysWithCounts = data.map(survey => ({
+          ...survey,
+          testimonial_count: countMap[survey.id] || 0
+        }));
+
+        console.log('✅ Surveys fetched:', surveysWithCounts.length);
+        setSurveys(surveysWithCounts);
+      } else {
+        setSurveys(data || []);
+      }
     } catch (error) {
       console.error('❌ Error fetching surveys:', error);
       
-      // Show helpful error message
-      const isTimeout = error instanceof Error && error.message.includes('timeout');
       toast({
-        title: isTimeout ? "Loading timeout" : "Error",
-        description: isTimeout 
-          ? "Surveys are taking longer to load. Please refresh the page." 
-          : getGenericErrorMessage('database'),
+        title: "Error loading surveys",
+        description: "Please refresh the page to try again.",
         variant: "destructive",
       });
       
-      // Don't leave user stuck - show empty state
       setSurveys([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, toast]);
 
-  const validateForm = (): boolean => {
+  useEffect(() => {
+    if (user) {
+      fetchSurveys();
+    } else {
+      setLoading(false);
+    }
+  }, [fetchSurveys]);
+
+  const validateForm = useCallback((): boolean => {
     try {
       surveySchema.parse(formData);
       setErrors({});
@@ -118,9 +121,14 @@ const Dashboard = () => {
       setErrors(fieldErrors);
       return false;
     }
-  };
+  }, [formData]);
 
-  const handleCreateSurvey = async () => {
+  const handleCreateSurvey = useCallback(async () => {
+    if (creatingSurvey) {
+      console.log('Survey creation already in progress, skipping...');
+      return;
+    }
+
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -131,7 +139,7 @@ const Dashboard = () => {
     }
 
     // Rate limiting for survey creation
-    const rateCheck = checkRateLimit(`survey_creation_${user?.id}`, 10, 60 * 60 * 1000); // 10 surveys per hour
+    const rateCheck = checkRateLimit(`survey_creation_${user?.id}`, 10, 60 * 60 * 1000);
     
     if (!rateCheck.allowed) {
       setRateLimited(true);
@@ -144,6 +152,9 @@ const Dashboard = () => {
     }
 
     try {
+      setCreatingsurvey(true);
+      console.log('🔄 Creating survey...');
+
       // Sanitize form data
       const sanitizedData = {
         title: sanitizeText(formData.title),
@@ -159,7 +170,12 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      setSurveys([{ ...data, testimonial_count: 0 }, ...surveys]);
+      console.log('✅ Survey created successfully');
+
+      // Optimistically update the UI without refetching all surveys
+      const newSurvey = { ...data, testimonial_count: 0 };
+      setSurveys(prevSurveys => [newSurvey, ...prevSurveys]);
+      
       setFormData({ title: "", question: "" });
       setIsCreateDialogOpen(false);
       
@@ -167,17 +183,20 @@ const Dashboard = () => {
         title: "Survey Created",
         description: "Your testimonial survey has been created successfully.",
       });
+
     } catch (error) {
-      console.error('Error creating survey:', error);
+      console.error('❌ Error creating survey:', error);
       toast({
         title: "Error",
         description: getGenericErrorMessage('database'),
         variant: "destructive",
       });
+    } finally {
+      setCreatingsurvey(false);
     }
-  };
+  }, [creatingsurvey, validateForm, user?.id, formData, toast]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
@@ -185,14 +204,14 @@ const Dashboard = () => {
     if (errors[name as keyof SurveyFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
-  };
+  }, [errors]);
 
-  const generateSurveyUrl = (surveyId: string) => {
+  const generateSurveyUrl = useCallback((surveyId: string) => {
     const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
     return `${currentOrigin}/submit/${surveyId}`;
-  };
+  }, []);
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       toast({
         title: "Copied to clipboard",
@@ -205,9 +224,9 @@ const Dashboard = () => {
         variant: "destructive",
       });
     });
-  };
+  }, [toast]);
 
-  const shareLink = (url: string, surveyTitle: string) => {
+  const shareLink = useCallback((url: string, surveyTitle: string) => {
     if (navigator.share) {
       navigator.share({
         title: `${surveyTitle} - Testimonial Survey`,
@@ -219,11 +238,8 @@ const Dashboard = () => {
     } else {
       copyToClipboard(url);
     }
-  };
+  }, [copyToClipboard]);
 
-  const totalTestimonials = surveys.reduce((sum, survey) => sum + (survey.testimonial_count || 0), 0);
-
-  // Don't show loading spinner forever
   if (loading) {
     return (
       <div className="min-h-screen bg-black">
@@ -236,7 +252,6 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-black">
-      {/* Dark themed app layout with purple accents */}
       <div className="space-y-8 p-6 lg:p-8">
         {/* Header */}
         <div className="flex justify-between items-center">
@@ -253,10 +268,11 @@ const Dashboard = () => {
             rateLimited={rateLimited}
             onSubmit={handleCreateSurvey}
             onChange={handleChange}
+            loading={creatingsurvey}
           />
         </div>
 
-        {/* Stats Overview with dark theme */}
+        {/* Stats Overview */}
         <DashboardStats 
           totalSurveys={surveys.length}
           totalTestimonials={totalTestimonials}
@@ -279,6 +295,7 @@ const Dashboard = () => {
             onCopyLink={copyToClipboard}
             onShareLink={shareLink}
             generateSurveyUrl={generateSurveyUrl}
+            loading={creatingsurvey}
           />
         </div>
       </div>

@@ -11,7 +11,8 @@ interface UsageData {
   downloads: { current: number; limit: number };
 }
 
-const USAGE_CACHE_KEY = 'usage_cache_v2';
+const USAGE_CACHE_KEY = 'usage_cache_v3';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
 export const useUsageTracking = () => {
   const { user } = useAuth();
@@ -24,42 +25,58 @@ export const useUsageTracking = () => {
   });
   const [loading, setLoading] = useState(true);
   const fetchingRef = useRef(false);
+  const lastFetchTime = useRef(0);
 
   const isPro = subscription.subscription_tier === 'pro';
 
-  const fetchUsage = useCallback(async () => {
+  const fetchUsage = useCallback(async (forceRefresh = false) => {
     if (!user || fetchingRef.current) {
       setLoading(false);
       return;
     }
 
-    try {
-      fetchingRef.current = true;
-      setLoading(true);
-      
-      // Load from cache first
+    // Check cache first (unless forced refresh)
+    if (!forceRefresh) {
+      const now = Date.now();
+      if (now - lastFetchTime.current < CACHE_DURATION) {
+        console.log('📊 Using cached usage data');
+        setLoading(false);
+        return;
+      }
+
       const cached = localStorage.getItem(USAGE_CACHE_KEY);
       if (cached) {
         try {
           const parsedCache = JSON.parse(cached);
-          const cacheAge = Date.now() - (parsedCache.cached_at || 0);
+          const cacheAge = now - (parsedCache.cached_at || 0);
           
-          // Use cache if less than 1 minute old
-          if (cacheAge < 60000) {
+          if (cacheAge < CACHE_DURATION) {
+            console.log('📊 Using localStorage cached usage data');
             setUsage(parsedCache.usage);
             setLoading(false);
             return;
           }
         } catch (e) {
           console.warn('Invalid usage cache:', e);
+          localStorage.removeItem(USAGE_CACHE_KEY);
         }
       }
+    }
 
+    try {
+      fetchingRef.current = true;
+      setLoading(true);
+      console.log('📊 Fetching fresh usage data...');
+      
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      // Use Promise.all for parallel requests with timeout
-      const fetchPromises = [
+      // Batch queries with timeout for better performance
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Usage fetch timeout')), 8000);
+      });
+
+      const fetchPromises = Promise.all([
         supabase
           .from('surveys')
           .select('*', { count: 'exact', head: true })
@@ -71,30 +88,26 @@ export const useUsageTracking = () => {
           .select('surveys!inner(*)', { count: 'exact', head: true })
           .eq('surveys.user_id', user.id)
           .gte('created_at', startOfMonth.toISOString())
-      ];
-
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Usage fetch timeout')), 10000);
-      });
+      ]);
 
       const [surveysResult, responsesResult] = await Promise.race([
-        Promise.all(fetchPromises),
+        fetchPromises,
         timeoutPromise
       ]) as any[];
 
-      // Set limits based on subscription tier
+      // Set limits based on subscription tier with safer defaults
       const limits = isPro
-        ? { surveys: Infinity, responses: 250, downloads: Infinity }
+        ? { surveys: 999, responses: 250, downloads: 999 } // Use large numbers instead of Infinity
         : { surveys: 2, responses: 10, downloads: 3 };
 
       const newUsage = {
         surveys: { current: surveysResult.count || 0, limit: limits.surveys },
         responses: { current: responsesResult.count || 0, limit: limits.responses },
-        downloads: { current: 0, limit: limits.downloads }, // TODO: Track downloads
+        downloads: { current: 0, limit: limits.downloads },
       };
 
       setUsage(newUsage);
+      lastFetchTime.current = Date.now();
       
       // Cache the result
       localStorage.setItem(USAGE_CACHE_KEY, JSON.stringify({
@@ -102,21 +115,14 @@ export const useUsageTracking = () => {
         cached_at: Date.now(),
       }));
 
+      console.log('✅ Usage data updated:', newUsage);
+
     } catch (error) {
-      console.error('Error fetching usage:', error);
+      console.error('❌ Error fetching usage:', error);
       
-      // Don't show error toast for timeout - just use defaults
-      if (error instanceof Error && !error.message.includes('timeout')) {
-        toast({
-          title: "Usage data unavailable",
-          description: "Showing estimated limits. Please refresh if needed.",
-          variant: "destructive",
-        });
-      }
-      
-      // Fallback to default limits
+      // Use fallback limits and don't show toast for timeout
       const limits = isPro
-        ? { surveys: Infinity, responses: 250, downloads: Infinity }
+        ? { surveys: 999, responses: 250, downloads: 999 }
         : { surveys: 2, responses: 10, downloads: 3 };
 
       setUsage({
@@ -124,19 +130,32 @@ export const useUsageTracking = () => {
         responses: { current: 0, limit: limits.responses },
         downloads: { current: 0, limit: limits.downloads },
       });
+
+      if (!(error instanceof Error && error.message.includes('timeout'))) {
+        toast({
+          title: "Usage data temporarily unavailable",
+          description: "Using default limits. Data will refresh automatically.",
+          variant: "destructive",
+        });
+      }
     } finally {
       fetchingRef.current = false;
       setLoading(false);
     }
   }, [user, isPro, toast]);
 
+  // Initial fetch with debounce
   useEffect(() => {
-    if (user) {
-      fetchUsage();
+    if (user && subscription.subscription_tier) {
+      const timer = setTimeout(() => {
+        fetchUsage();
+      }, 500); // Small delay to batch initial renders
+      
+      return () => clearTimeout(timer);
     } else {
       setLoading(false);
     }
-  }, [fetchUsage]);
+  }, [user, subscription.subscription_tier, fetchUsage]);
 
   const checkLimit = useCallback((type: 'surveys' | 'responses' | 'downloads'): boolean => {
     return usage[type].current >= usage[type].limit;
@@ -144,14 +163,13 @@ export const useUsageTracking = () => {
 
   const canPerformAction = useCallback((type: 'surveys' | 'responses' | 'downloads'): boolean => {
     if (isPro && (type === 'surveys' || type === 'downloads')) {
-      return true; // Unlimited for Pro users
+      return true;
     }
     return !checkLimit(type);
   }, [isPro, checkLimit]);
 
   const showLimitAlert = useCallback((type: 'surveys' | 'responses' | 'downloads') => {
     if (!isPro) {
-      // Free user reached limit
       toast({
         title: "🔒 Monthly Limit Reached",
         description: "You've reached your monthly free limit. Upgrade for just $4/month to unlock unlimited surveys, 250 responses, and more — or wait until next month to reset.",
@@ -159,7 +177,6 @@ export const useUsageTracking = () => {
         duration: 8000,
       });
     } else if (type === 'responses') {
-      // Pro user reached response limit
       toast({
         title: "⚠️ Response Limit Reached",
         description: "You've reached the 250 response limit for your Pro plan this month. Please wait for your next billing cycle for responses to reset.",
@@ -172,10 +189,18 @@ export const useUsageTracking = () => {
   const enforceLimit = useCallback((type: 'surveys' | 'responses' | 'downloads'): boolean => {
     if (!canPerformAction(type)) {
       showLimitAlert(type);
-      return false; // Block the action
+      return false;
     }
-    return true; // Allow the action
+    return true;
   }, [canPerformAction, showLimitAlert]);
+
+  // Throttled refresh function
+  const refreshUsage = useCallback(() => {
+    const now = Date.now();
+    if (now - lastFetchTime.current > 2000) { // Throttle to max once per 2 seconds
+      fetchUsage(true);
+    }
+  }, [fetchUsage]);
 
   return {
     usage,
@@ -185,6 +210,6 @@ export const useUsageTracking = () => {
     enforceLimit,
     showLimitAlert,
     isPro,
-    refreshUsage: fetchUsage,
+    refreshUsage,
   };
 };

@@ -1,12 +1,11 @@
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import { Plus, AlertTriangle } from "lucide-react";
-import { surveySchema, type SurveyFormData } from "@/lib/validation";
+import { Plus, AlertTriangle, Loader2 } from "lucide-react";
+import { type SurveyFormData } from "@/lib/validation";
 
 interface CreateSurveyDialogProps {
   isOpen: boolean;
@@ -16,6 +15,7 @@ interface CreateSurveyDialogProps {
   rateLimited: boolean;
   onSubmit: () => void;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  loading?: boolean;
 }
 
 export const CreateSurveyDialog = ({
@@ -25,14 +25,29 @@ export const CreateSurveyDialog = ({
   errors,
   rateLimited,
   onSubmit,
-  onChange
+  onChange,
+  loading = false
 }: CreateSurveyDialogProps) => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loading && !rateLimited) {
+      onSubmit();
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button className="bg-purple-600 text-white hover:bg-purple-700 rounded-full px-6 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20" disabled={rateLimited}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Survey
+        <Button 
+          className="bg-purple-600 text-white hover:bg-purple-700 rounded-full px-6 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20" 
+          disabled={rateLimited || loading}
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Plus className="h-4 w-4 mr-2" />
+          )}
+          {loading ? "Creating..." : "Create Survey"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md bg-gray-900 border-gray-800 text-white">
@@ -53,7 +68,7 @@ export const CreateSurveyDialog = ({
           </div>
         )}
         
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="surveyTitle" className="text-gray-300">Survey Title</Label>
             <Input
@@ -64,6 +79,7 @@ export const CreateSurveyDialog = ({
               placeholder="e.g., General Feedback, Product Review"
               className={`mt-2 bg-gray-800 border-gray-700 text-white focus:border-purple-500 focus:ring-purple-500 ${errors.title ? 'border-red-500' : ''}`}
               maxLength={200}
+              disabled={loading}
             />
             {errors.title && <p className="text-red-400 text-sm mt-1">{errors.title}</p>}
           </div>
@@ -78,22 +94,36 @@ export const CreateSurveyDialog = ({
               className={`mt-2 bg-gray-800 border-gray-700 text-white focus:border-purple-500 focus:ring-purple-500 ${errors.question ? 'border-red-500' : ''}`}
               rows={3}
               maxLength={500}
+              disabled={loading}
             />
             {errors.question && <p className="text-red-400 text-sm mt-1">{errors.question}</p>}
           </div>
           <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="border-gray-700 text-gray-300 hover:bg-gray-800">
+            <Button 
+              type="button"
+              variant="outline" 
+              onClick={() => onOpenChange(false)} 
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              disabled={loading}
+            >
               Cancel
             </Button>
             <Button 
-              onClick={onSubmit} 
+              type="submit"
               className="bg-purple-600 text-white hover:bg-purple-700 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
-              disabled={rateLimited}
+              disabled={rateLimited || loading}
             >
-              Create Survey
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Survey"
+              )}
             </Button>
           </div>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
