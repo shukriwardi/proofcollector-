@@ -10,10 +10,10 @@ export interface SubscriptionData {
   verified?: boolean;
 }
 
-const CACHE_KEY = 'subscription_cache_v4';
+const CACHE_KEY = 'subscription_cache_v5';
 const VERIFIED_KEY = 'subscription_verified';
 const PRO_LOCK_KEY = 'pro_status_locked';
-const CHECK_COOLDOWN = 30000; // 30 seconds cooldown between checks
+const CHECK_COOLDOWN = 60000; // 1 minute cooldown between checks
 
 export const useSubscription = () => {
   const { user, session } = useAuth();
@@ -34,7 +34,7 @@ export const useSubscription = () => {
     };
   }, []);
 
-  // Load cached subscription on mount
+  // Load cached subscription on mount - prioritize Pro status
   useEffect(() => {
     const cached = localStorage.getItem(CACHE_KEY);
     const verified = localStorage.getItem(VERIFIED_KEY) === 'true';
@@ -45,9 +45,9 @@ export const useSubscription = () => {
         const parsedCache = JSON.parse(cached);
         const isProStatus = parsedCache.subscription_tier === 'pro';
         
-        // If Pro status is locked or recently verified, use cache immediately
-        if ((proLocked && isProStatus) || (verified && isProStatus)) {
-          console.log('🎉 Using locked Pro status from cache');
+        // Always prioritize Pro status if it exists in cache
+        if (isProStatus || (proLocked && verified)) {
+          console.log('🎉 Using Pro status from cache - locked:', proLocked);
           if (mountedRef.current) {
             setSubscription({
               subscribed: true,
@@ -60,10 +60,9 @@ export const useSubscription = () => {
           return;
         }
 
-        // Use recent cache (within 2 minutes)
+        // Use recent cache for other statuses
         const cacheAge = Date.now() - (parsedCache.cached_at || 0);
-        if (cacheAge < 120000) {
-          console.log('📋 Using recent cache');
+        if (cacheAge < 300000) { // 5 minutes
           if (mountedRef.current) {
             setSubscription({
               subscribed: parsedCache.subscribed || false,
@@ -71,17 +70,12 @@ export const useSubscription = () => {
               subscription_end: parsedCache.subscription_end,
               verified: verified,
             });
-            
-            if (isProStatus) {
-              setLoading(false);
-            }
+            setLoading(false);
           }
         }
       } catch (e) {
         console.warn('Invalid subscription cache:', e);
-        localStorage.removeItem(CACHE_KEY);
-        localStorage.removeItem(VERIFIED_KEY);
-        localStorage.removeItem(PRO_LOCK_KEY);
+        // Don't clear cache immediately - might contain valid Pro status
       }
     }
   }, []);
@@ -95,7 +89,7 @@ export const useSubscription = () => {
       return { subscribed: false, subscription_tier: 'free' as const };
     }
 
-    // Cooldown check (unless forced)
+    // Stronger cooldown check
     const now = Date.now();
     if (!forceCheck && now - lastCheckTime.current < CHECK_COOLDOWN) {
       console.log('⏱️ Subscription check on cooldown');
@@ -109,7 +103,7 @@ export const useSubscription = () => {
       return subscription;
     }
 
-    // Don't overwrite locked Pro status unless forced
+    // Never overwrite locked Pro status unless explicitly forced
     const proLocked = localStorage.getItem(PRO_LOCK_KEY) === 'true';
     if (proLocked && subscription.subscription_tier === 'pro' && !forceCheck) {
       console.log('🔒 Pro status is locked, skipping check');
@@ -124,18 +118,11 @@ export const useSubscription = () => {
       console.log('🔄 Checking subscription status...');
       lastCheckTime.current = now;
       
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Subscription check timeout')), 10000);
-      });
-
-      const checkPromise = supabase.functions.invoke('check-subscription', {
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
-
-      const { data, error } = await Promise.race([checkPromise, timeoutPromise]) as any;
 
       if (!mountedRef.current) return subscription;
 
@@ -172,22 +159,19 @@ export const useSubscription = () => {
       };
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
       
-      // Lock Pro status to prevent reverting
+      // Lock Pro status permanently once verified
       if (newSubscription.subscription_tier === 'pro') {
         localStorage.setItem(VERIFIED_KEY, 'true');
         localStorage.setItem(PRO_LOCK_KEY, 'true');
-        console.log('🔒 Pro subscription locked and verified!');
+        console.log('🔒 Pro subscription locked permanently!');
         
-        // Show success message only once
+        // Show success message only once per session
         if (subscription.subscription_tier !== 'pro' && mountedRef.current) {
           toast({
-            title: "🎉 Pro subscription activated!",
+            title: "🎉 Pro subscription verified!",
             description: "You now have access to all Pro features.",
           });
         }
-      } else {
-        localStorage.removeItem(VERIFIED_KEY);
-        localStorage.removeItem(PRO_LOCK_KEY);
       }
 
       return newSubscription;
@@ -196,7 +180,7 @@ export const useSubscription = () => {
       
       if (!mountedRef.current) return subscription;
       
-      // Don't overwrite locked Pro status on errors
+      // Never overwrite locked Pro status on errors
       const proLocked = localStorage.getItem(PRO_LOCK_KEY) === 'true';
       if (proLocked && subscription.subscription_tier === 'pro') {
         console.log('⚠️ Keeping locked Pro status despite error');
@@ -204,13 +188,11 @@ export const useSubscription = () => {
         return subscription;
       }
       
-      setSubscription({ subscribed: false, subscription_tier: 'free' });
-      
-      // Only show error if user was actively trying to check subscription
+      // Only show error for explicit checks, not background ones
       if (forceCheck) {
         toast({
           title: "Connection Issue",
-          description: "Having trouble checking your subscription status. Please refresh the page.",
+          description: "Having trouble checking subscription status. Your Pro status is preserved.",
           variant: "destructive",
         });
       }
@@ -294,10 +276,17 @@ export const useSubscription = () => {
     }
   }, [session, toast]);
 
-  // Auto-check subscription when auth is ready (with longer delay and debounce)
+  // Auto-check subscription when auth is ready (less aggressive)
   useEffect(() => {
     if (!user || !session || !mountedRef.current) {
       if (mountedRef.current) setLoading(false);
+      return;
+    }
+
+    // Only auto-check if we don't have Pro status cached
+    const proLocked = localStorage.getItem(PRO_LOCK_KEY) === 'true';
+    if (proLocked && subscription.subscription_tier === 'pro') {
+      setLoading(false);
       return;
     }
 
@@ -309,34 +298,13 @@ export const useSubscription = () => {
         if (mountedRef.current && !checkingRef.current) {
           checkSubscription(true);
         }
-      }, 2000); // Increased delay
+      }, 3000); // Longer delay
     };
 
     scheduleCheck();
     
     return () => clearTimeout(timeoutId);
   }, [user?.id, session?.access_token]); // Only depend on stable values
-
-  // Listen for page visibility changes (simplified)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user && session && mountedRef.current) {
-        // Only check if we haven't checked recently
-        const timeSinceLastCheck = Date.now() - lastCheckTime.current;
-        if (timeSinceLastCheck > CHECK_COOLDOWN) {
-          console.log('🔄 Page became visible - checking subscription...');
-          setTimeout(() => {
-            if (mountedRef.current) {
-              checkSubscription(true, true);
-            }
-          }, 1000);
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user?.id, session?.access_token, checkSubscription]);
 
   return {
     subscription,

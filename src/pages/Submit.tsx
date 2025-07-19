@@ -66,34 +66,16 @@ const Submit = () => {
 
     console.log('🔄 Fetching survey with ID:', surveyId);
     
-    let timeoutId: NodeJS.Timeout;
-    
     try {
       setLoading(true);
       setError(null);
 
-      // Create a timeout promise that rejects after 8 seconds
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => {
-          reject(new Error('Request timed out - please try again'));
-        }, 8000);
-      });
-
-      // Create the query promise with proper typing
-      const queryPromise = supabase
+      // Simple direct query without complex timeout handling
+      const { data, error: fetchError } = await supabase
         .from('surveys')
         .select('id, title, question, user_id, created_at')
         .eq('id', surveyId)
         .maybeSingle();
-
-      // Race the promises and handle the result
-      const result = await Promise.race([queryPromise, timeoutPromise]);
-      
-      // Clear timeout since query completed
-      clearTimeout(timeoutId);
-      
-      // Handle the Supabase response
-      const { data, error: fetchError } = result;
 
       if (fetchError) {
         console.error('❌ Supabase error:', fetchError);
@@ -108,18 +90,13 @@ const Submit = () => {
       }
 
       console.log('✅ Survey loaded successfully:', data);
-      setSurvey(data as Survey);
+      setSurvey(data);
       setError(null);
     } catch (err: any) {
       console.error('💥 Error fetching survey:', err);
-      if (err.message?.includes('timed out')) {
-        setError('Request timed out - please refresh and try again');
-      } else {
-        setError('Unable to load survey - please check the link and try again');
-      }
+      setError('Unable to load survey - please check the link and try again');
       setSurvey(null);
     } finally {
-      clearTimeout(timeoutId);
       setLoading(false);
     }
   }, [surveyId]);
@@ -250,6 +227,23 @@ const Submit = () => {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
+
+  // Cooldown timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (cooldownTime > 0) {
+      interval = setInterval(() => {
+        setCooldownTime(prev => {
+          if (prev <= 1) {
+            setRateLimited(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [cooldownTime]);
 
   if (loading) {
     return (
