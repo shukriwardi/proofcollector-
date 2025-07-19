@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -68,31 +67,36 @@ const Submit = () => {
     console.log('🔄 Fetching survey with ID:', surveyId);
     
     let timeoutId: NodeJS.Timeout;
-    const abortController = new AbortController();
+    let queryCompleted = false;
     
     try {
       setLoading(true);
       setError(null);
 
       // Set timeout for the request
-      timeoutId = setTimeout(() => {
-        abortController.abort();
-      }, 8000); // 8 second timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          if (!queryCompleted) {
+            reject(new Error('Request timed out - please try again'));
+          }
+        }, 8000); // 8 second timeout
+      });
 
-      const { data, error: fetchError } = await supabase
+      const queryPromise = supabase
         .from('surveys')
         .select('id, title, question, user_id, created_at')
         .eq('id', surveyId)
         .maybeSingle()
-        .abortSignal(abortController.signal);
+        .then(result => {
+          queryCompleted = true;
+          clearTimeout(timeoutId);
+          return result;
+        });
 
-      clearTimeout(timeoutId);
+      const { data, error: fetchError } = await Promise.race([queryPromise, timeoutPromise]);
 
       if (fetchError) {
         console.error('❌ Supabase error:', fetchError);
-        if (fetchError.message?.includes('aborted')) {
-          throw new Error('Request timed out - please try again');
-        }
         throw new Error('Failed to load survey');
       }
 
@@ -108,7 +112,7 @@ const Submit = () => {
       setError(null);
     } catch (err: any) {
       console.error('💥 Error fetching survey:', err);
-      if (err.name === 'AbortError') {
+      if (err.message?.includes('timed out')) {
         setError('Request timed out - please refresh and try again');
       } else {
         setError('Unable to load survey - please check the link and try again');
