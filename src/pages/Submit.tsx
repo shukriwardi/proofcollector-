@@ -60,25 +60,39 @@ const Submit = () => {
   const fetchSurvey = useCallback(async () => {
     if (!surveyId) {
       console.log('❌ No survey ID provided');
-      setError('No survey ID provided');
+      setError('Invalid survey link');
       setLoading(false);
       return;
     }
 
     console.log('🔄 Fetching survey with ID:', surveyId);
     
+    let timeoutId: NodeJS.Timeout;
+    const abortController = new AbortController();
+    
     try {
       setLoading(true);
       setError(null);
+
+      // Set timeout for the request
+      timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, 8000); // 8 second timeout
 
       const { data, error: fetchError } = await supabase
         .from('surveys')
         .select('id, title, question, user_id, created_at')
         .eq('id', surveyId)
-        .maybeSingle();
+        .maybeSingle()
+        .abortSignal(abortController.signal);
+
+      clearTimeout(timeoutId);
 
       if (fetchError) {
         console.error('❌ Supabase error:', fetchError);
+        if (fetchError.message?.includes('aborted')) {
+          throw new Error('Request timed out - please try again');
+        }
         throw new Error('Failed to load survey');
       }
 
@@ -92,11 +106,16 @@ const Submit = () => {
       console.log('✅ Survey loaded successfully:', data);
       setSurvey(data);
       setError(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error('💥 Error fetching survey:', err);
-      setError('Failed to load survey');
+      if (err.name === 'AbortError') {
+        setError('Request timed out - please refresh and try again');
+      } else {
+        setError('Unable to load survey - please check the link and try again');
+      }
       setSurvey(null);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   }, [surveyId]);

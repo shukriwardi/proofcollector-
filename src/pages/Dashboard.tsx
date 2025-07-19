@@ -45,27 +45,49 @@ const Dashboard = () => {
       return;
     }
     
+    let timeoutId: NodeJS.Timeout;
+    const abortController = new AbortController();
+    
     try {
       setLoading(true);
       console.log('📊 Fetching surveys for user:', user.id);
       
+      // Set timeout for the request
+      timeoutId = setTimeout(() => {
+        abortController.abort();
+      }, 10000); // 10 second timeout
+
       const { data, error } = await supabase
         .from('surveys')
         .select('id, title, question, created_at')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .abortSignal(abortController.signal);
+
+      clearTimeout(timeoutId);
 
       if (error) {
         console.error('❌ Error fetching surveys:', error);
+        if (error.message?.includes('aborted')) {
+          throw new Error('Request timed out');
+        }
         throw error;
       }
 
       if (data && data.length > 0) {
         const surveyIds = data.map(s => s.id);
+        
+        // Fetch testimonial counts with timeout
+        const countTimeoutId = setTimeout(() => {
+          // Don't abort this one, just continue without counts
+        }, 5000);
+        
         const { data: testimonialCounts } = await supabase
           .from('testimonials')
           .select('survey_id')
           .in('survey_id', surveyIds);
+
+        clearTimeout(countTimeoutId);
 
         const countMap = testimonialCounts?.reduce((acc, t) => {
           acc[t.survey_id] = (acc[t.survey_id] || 0) + 1;
@@ -82,15 +104,24 @@ const Dashboard = () => {
       } else {
         setSurveys(data || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error fetching surveys:', error);
-      toast({
-        title: "Error loading surveys",
-        description: "Please refresh the page to try again.",
-        variant: "destructive",
-      });
+      if (error.message?.includes('aborted')) {
+        toast({
+          title: "Request timed out",
+          description: "Please refresh the page to try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error loading surveys",
+          description: "Please refresh the page to try again.",
+          variant: "destructive",
+        });
+      }
       setSurveys([]);
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   }, [user?.id, toast]);
@@ -101,7 +132,7 @@ const Dashboard = () => {
     } else {
       setLoading(false);
     }
-  }, [fetchSurveys]);
+  }, [user?.id]); // Only depend on user.id
 
   const validateForm = useCallback((): boolean => {
     try {

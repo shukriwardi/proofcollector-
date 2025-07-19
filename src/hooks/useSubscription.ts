@@ -10,10 +10,10 @@ export interface SubscriptionData {
   verified?: boolean;
 }
 
-const CACHE_KEY = 'subscription_cache_v3';
+const CACHE_KEY = 'subscription_cache_v4';
 const VERIFIED_KEY = 'subscription_verified';
 const PRO_LOCK_KEY = 'pro_status_locked';
-const CHECK_COOLDOWN = 10000; // 10 seconds cooldown between checks
+const CHECK_COOLDOWN = 30000; // 30 seconds cooldown between checks
 
 export const useSubscription = () => {
   const { user, session } = useAuth();
@@ -25,7 +25,14 @@ export const useSubscription = () => {
   const [loading, setLoading] = useState(true);
   const checkingRef = useRef(false);
   const lastCheckTime = useRef(0);
-  const retryCountRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Load cached subscription on mount
   useEffect(() => {
@@ -41,29 +48,33 @@ export const useSubscription = () => {
         // If Pro status is locked or recently verified, use cache immediately
         if ((proLocked && isProStatus) || (verified && isProStatus)) {
           console.log('🎉 Using locked Pro status from cache');
-          setSubscription({
-            subscribed: true,
-            subscription_tier: 'pro',
-            subscription_end: parsedCache.subscription_end,
-            verified: true,
-          });
-          setLoading(false);
+          if (mountedRef.current) {
+            setSubscription({
+              subscribed: true,
+              subscription_tier: 'pro',
+              subscription_end: parsedCache.subscription_end,
+              verified: true,
+            });
+            setLoading(false);
+          }
           return;
         }
 
-        // Use recent cache (within 30 seconds)
+        // Use recent cache (within 2 minutes)
         const cacheAge = Date.now() - (parsedCache.cached_at || 0);
-        if (cacheAge < 30000) {
+        if (cacheAge < 120000) {
           console.log('📋 Using recent cache');
-          setSubscription({
-            subscribed: parsedCache.subscribed || false,
-            subscription_tier: parsedCache.subscription_tier || 'free',
-            subscription_end: parsedCache.subscription_end,
-            verified: verified,
-          });
-          
-          if (isProStatus) {
-            setLoading(false);
+          if (mountedRef.current) {
+            setSubscription({
+              subscribed: parsedCache.subscribed || false,
+              subscription_tier: parsedCache.subscription_tier || 'free',
+              subscription_end: parsedCache.subscription_end,
+              verified: verified,
+            });
+            
+            if (isProStatus) {
+              setLoading(false);
+            }
           }
         }
       } catch (e) {
@@ -76,9 +87,11 @@ export const useSubscription = () => {
   }, []);
 
   const checkSubscription = useCallback(async (skipLoading = false, forceCheck = false) => {
-    if (!user || !session) {
-      setSubscription({ subscribed: false, subscription_tier: 'free' });
-      setLoading(false);
+    if (!mountedRef.current || !user || !session) {
+      if (mountedRef.current) {
+        setSubscription({ subscribed: false, subscription_tier: 'free' });
+        setLoading(false);
+      }
       return { subscribed: false, subscription_tier: 'free' as const };
     }
 
@@ -86,7 +99,7 @@ export const useSubscription = () => {
     const now = Date.now();
     if (!forceCheck && now - lastCheckTime.current < CHECK_COOLDOWN) {
       console.log('⏱️ Subscription check on cooldown');
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
       return subscription;
     }
 
@@ -100,37 +113,34 @@ export const useSubscription = () => {
     const proLocked = localStorage.getItem(PRO_LOCK_KEY) === 'true';
     if (proLocked && subscription.subscription_tier === 'pro' && !forceCheck) {
       console.log('🔒 Pro status is locked, skipping check');
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
       return subscription;
     }
 
     try {
       checkingRef.current = true;
-      if (!skipLoading) setLoading(true);
+      if (!skipLoading && mountedRef.current) setLoading(true);
       
       console.log('🔄 Checking subscription status...');
       lastCheckTime.current = now;
       
-      const { data, error } = await supabase.functions.invoke('check-subscription', {
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Subscription check timeout')), 10000);
+      });
+
+      const checkPromise = supabase.functions.invoke('check-subscription', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
 
+      const { data, error } = await Promise.race([checkPromise, timeoutPromise]) as any;
+
+      if (!mountedRef.current) return subscription;
+
       if (error) {
         console.error('❌ Subscription check error:', error);
-        
-        // Retry logic with exponential backoff
-        if (retryCountRef.current < 2) {
-          retryCountRef.current++;
-          console.log(`🔄 Retrying subscription check (${retryCountRef.current}/2)...`);
-          
-          const delay = Math.pow(2, retryCountRef.current - 1) * 2000;
-          setTimeout(() => {
-            checkSubscription(skipLoading, forceCheck);
-          }, delay);
-          return subscription;
-        }
         
         // Keep verified Pro status despite API errors
         if (proLocked && subscription.subscription_tier === 'pro') {
@@ -142,8 +152,6 @@ export const useSubscription = () => {
         throw error;
       }
 
-      retryCountRef.current = 0;
-
       const newSubscription: SubscriptionData = {
         subscribed: data.subscribed || false,
         subscription_tier: data.subscription_tier || 'free',
@@ -153,7 +161,9 @@ export const useSubscription = () => {
 
       console.log('✅ Subscription status updated:', newSubscription);
 
-      setSubscription(newSubscription);
+      if (mountedRef.current) {
+        setSubscription(newSubscription);
+      }
       
       // Cache with timestamp
       const cacheData = {
@@ -169,7 +179,7 @@ export const useSubscription = () => {
         console.log('🔒 Pro subscription locked and verified!');
         
         // Show success message only once
-        if (subscription.subscription_tier !== 'pro') {
+        if (subscription.subscription_tier !== 'pro' && mountedRef.current) {
           toast({
             title: "🎉 Pro subscription activated!",
             description: "You now have access to all Pro features.",
@@ -183,6 +193,8 @@ export const useSubscription = () => {
       return newSubscription;
     } catch (error) {
       console.error('❌ Error checking subscription:', error);
+      
+      if (!mountedRef.current) return subscription;
       
       // Don't overwrite locked Pro status on errors
       const proLocked = localStorage.getItem(PRO_LOCK_KEY) === 'true';
@@ -204,7 +216,7 @@ export const useSubscription = () => {
       }
     } finally {
       checkingRef.current = false;
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, [user, session, subscription, toast]);
 
@@ -234,31 +246,8 @@ export const useSubscription = () => {
 
       if (error) throw error;
 
-      // Open checkout in new tab and monitor for completion
-      const checkoutWindow = window.open(data.url, '_blank');
-      
-      if (checkoutWindow) {
-        let pollCount = 0;
-        const maxPolls = 600; // 10 minutes max
-        
-        const pollForCompletion = () => {
-          const interval = setInterval(async () => {
-            pollCount++;
-            
-            if (checkoutWindow.closed || pollCount >= maxPolls) {
-              console.log('🔄 Checkout window closed - forcing subscription check...');
-              clearInterval(interval);
-              
-              // Force immediate check when window closes
-              setTimeout(() => {
-                checkSubscription(false, true);
-              }, 1000);
-            }
-          }, 1000);
-        };
-
-        pollForCompletion();
-      }
+      // Open checkout in new tab
+      window.open(data.url, '_blank');
 
     } catch (error) {
       console.error('❌ Error creating checkout:', error);
@@ -268,7 +257,7 @@ export const useSubscription = () => {
         variant: "destructive",
       });
     }
-  }, [session, toast, checkSubscription]);
+  }, [session, toast]);
 
   const openCustomerPortal = useCallback(async () => {
     if (!session) {
@@ -305,51 +294,49 @@ export const useSubscription = () => {
     }
   }, [session, toast]);
 
-  // Auto-check subscription when auth is ready (with delay)
+  // Auto-check subscription when auth is ready (with longer delay and debounce)
   useEffect(() => {
-    if (user && session && !checkingRef.current) {
-      const timer = setTimeout(() => {
-        checkSubscription();
-      }, 1000); // Delay to ensure auth is fully ready
-      
-      return () => clearTimeout(timer);
+    if (!user || !session || !mountedRef.current) {
+      if (mountedRef.current) setLoading(false);
+      return;
     }
-  }, [user, session, checkSubscription]);
 
-  // Listen for Stripe return with optimized event handling
-  useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-    
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user && session) {
-        // Debounce the check to avoid multiple rapid calls
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          console.log('🔄 Page became visible - checking subscription...');
-          checkSubscription(true, true);
-        }, 1000);
-      }
+
+    const scheduleCheck = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        if (mountedRef.current && !checkingRef.current) {
+          checkSubscription(true);
+        }
+      }, 2000); // Increased delay
     };
 
-    const handleFocus = () => {
-      if (user && session) {
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-          console.log('🔄 Window focused - checking subscription...');
-          checkSubscription(true, true);
-        }, 1000);
+    scheduleCheck();
+    
+    return () => clearTimeout(timeoutId);
+  }, [user?.id, session?.access_token]); // Only depend on stable values
+
+  // Listen for page visibility changes (simplified)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user && session && mountedRef.current) {
+        // Only check if we haven't checked recently
+        const timeSinceLastCheck = Date.now() - lastCheckTime.current;
+        if (timeSinceLastCheck > CHECK_COOLDOWN) {
+          console.log('🔄 Page became visible - checking subscription...');
+          setTimeout(() => {
+            if (mountedRef.current) {
+              checkSubscription(true, true);
+            }
+          }, 1000);
+        }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      clearTimeout(timeoutId);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [user, session, checkSubscription]);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user?.id, session?.access_token, checkSubscription]);
 
   return {
     subscription,
