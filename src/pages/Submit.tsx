@@ -67,49 +67,53 @@ const Submit = () => {
     console.log('🔄 Fetching survey with ID:', surveyId);
     
     let timeoutId: NodeJS.Timeout;
-    let queryCompleted = false;
     
     try {
       setLoading(true);
       setError(null);
 
-      // Set timeout for the request
+      // Create a timeout promise that rejects after 8 seconds
       const timeoutPromise = new Promise((_, reject) => {
         timeoutId = setTimeout(() => {
-          if (!queryCompleted) {
-            reject(new Error('Request timed out - please try again'));
-          }
-        }, 8000); // 8 second timeout
+          reject(new Error('Request timed out - please try again'));
+        }, 8000);
       });
 
+      // Create the query promise
       const queryPromise = supabase
         .from('surveys')
         .select('id, title, question, user_id, created_at')
         .eq('id', surveyId)
-        .maybeSingle()
-        .then(result => {
-          queryCompleted = true;
-          clearTimeout(timeoutId);
-          return result;
-        });
+        .maybeSingle();
 
-      const { data, error: fetchError } = await Promise.race([queryPromise, timeoutPromise]);
+      // Race the promises and handle the result
+      const result = await Promise.race([queryPromise, timeoutPromise]);
+      
+      // Clear timeout since query completed
+      clearTimeout(timeoutId);
+      
+      // Type guard to ensure result is from Supabase query
+      if (result && typeof result === 'object' && 'data' in result) {
+        const { data, error: fetchError } = result;
 
-      if (fetchError) {
-        console.error('❌ Supabase error:', fetchError);
-        throw new Error('Failed to load survey');
+        if (fetchError) {
+          console.error('❌ Supabase error:', fetchError);
+          throw new Error('Failed to load survey');
+        }
+
+        if (!data) {
+          console.log('📭 No survey found with ID:', surveyId);
+          setError('Survey not found');
+          setSurvey(null);
+          return;
+        }
+
+        console.log('✅ Survey loaded successfully:', data);
+        setSurvey(data);
+        setError(null);
+      } else {
+        throw new Error('Invalid response from server');
       }
-
-      if (!data) {
-        console.log('📭 No survey found with ID:', surveyId);
-        setError('Survey not found');
-        setSurvey(null);
-        return;
-      }
-
-      console.log('✅ Survey loaded successfully:', data);
-      setSurvey(data);
-      setError(null);
     } catch (err: any) {
       console.error('💥 Error fetching survey:', err);
       if (err.message?.includes('timed out')) {
