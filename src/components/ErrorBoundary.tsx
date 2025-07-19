@@ -10,6 +10,7 @@ interface Props {
 interface State {
   hasError: boolean;
   error?: Error;
+  errorInfo?: ErrorInfo;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -24,11 +25,14 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('🚨 Error boundary details:', error, errorInfo);
+    this.setState({ errorInfo });
   }
 
   private handleReset = () => {
-    this.setState({ hasError: false, error: undefined });
-    // Force a full page reload to reset all state
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+  };
+
+  private handleReload = () => {
     window.location.reload();
   };
 
@@ -47,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
             
             <h1 className="text-3xl font-bold text-white mb-6">Something Went Wrong</h1>
             <p className="text-gray-300 text-lg leading-relaxed mb-8">
-              The app encountered an unexpected error. Don't worry, we can fix this!
+              The app encountered an unexpected error. This shouldn't affect other parts of the application.
             </p>
             
             <div className="space-y-4">
@@ -55,7 +59,15 @@ export class ErrorBoundary extends Component<Props, State> {
                 onClick={this.handleReset}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white"
               >
-                Reset Application
+                Try Again
+              </Button>
+              
+              <Button 
+                onClick={this.handleReload}
+                variant="outline"
+                className="w-full border-gray-600 bg-gray-800 text-gray-200 hover:bg-gray-700 hover:text-white hover:border-purple-500"
+              >
+                Reload Page
               </Button>
               
               <Button 
@@ -72,8 +84,14 @@ export class ErrorBoundary extends Component<Props, State> {
                 <summary className="text-gray-400 cursor-pointer hover:text-gray-300">
                   Technical Details
                 </summary>
-                <pre className="mt-4 p-4 bg-gray-800 rounded text-xs text-red-400 overflow-auto">
+                <pre className="mt-4 p-4 bg-gray-800 rounded text-xs text-red-400 overflow-auto max-h-32">
                   {this.state.error.toString()}
+                  {this.state.errorInfo && (
+                    <>
+                      {'\n\nComponent Stack:'}
+                      {this.state.errorInfo.componentStack}
+                    </>
+                  )}
                 </pre>
               </details>
             )}

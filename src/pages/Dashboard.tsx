@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -39,20 +40,19 @@ const Dashboard = () => {
   );
 
   const fetchSurveys = useCallback(async () => {
-    if (!user) {
+    if (!user?.id) {
       setLoading(false);
       return;
     }
     
     try {
       setLoading(true);
-      console.log('📊 Fetching surveys for user:', user?.id);
+      console.log('📊 Fetching surveys for user:', user.id);
       
-      // Simplified query without complex joins to improve performance
       const { data, error } = await supabase
         .from('surveys')
         .select('id, title, question, created_at')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -60,7 +60,6 @@ const Dashboard = () => {
         throw error;
       }
 
-      // Get testimonial counts in a separate, batched query
       if (data && data.length > 0) {
         const surveyIds = data.map(s => s.id);
         const { data: testimonialCounts } = await supabase
@@ -85,21 +84,19 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('❌ Error fetching surveys:', error);
-      
       toast({
         title: "Error loading surveys",
         description: "Please refresh the page to try again.",
         variant: "destructive",
       });
-      
       setSurveys([]);
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user?.id, toast]);
 
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
       fetchSurveys();
     } else {
       setLoading(false);
@@ -123,8 +120,7 @@ const Dashboard = () => {
   }, [formData]);
 
   const handleCreateSurvey = useCallback(async () => {
-    if (creatingSurvey) {
-      console.log('Survey creation already in progress, skipping...');
+    if (creatingSurvey || !user?.id) {
       return;
     }
 
@@ -138,7 +134,7 @@ const Dashboard = () => {
     }
 
     // Rate limiting for survey creation
-    const rateCheck = checkRateLimit(`survey_creation_${user?.id}`, 10, 60 * 60 * 1000);
+    const rateCheck = checkRateLimit(`survey_creation_${user.id}`, 10, 60 * 60 * 1000);
     
     if (!rateCheck.allowed) {
       setRateLimited(true);
@@ -154,11 +150,10 @@ const Dashboard = () => {
       setCreatingSurvey(true);
       console.log('🔄 Creating survey...');
 
-      // Sanitize form data
       const sanitizedData = {
         title: sanitizeText(formData.title),
         question: sanitizeText(formData.question),
-        user_id: user?.id
+        user_id: user.id
       };
 
       const { data, error } = await supabase
@@ -171,7 +166,6 @@ const Dashboard = () => {
 
       console.log('✅ Survey created successfully');
 
-      // Optimistically update the UI without refetching all surveys
       const newSurvey = { ...data, testimonial_count: 0 };
       setSurveys(prevSurveys => [newSurvey, ...prevSurveys]);
       
@@ -199,7 +193,6 @@ const Dashboard = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error when user starts typing
     if (errors[name as keyof SurveyFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }

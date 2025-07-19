@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +43,7 @@ export const TestimonialView = () => {
     borderColor: isLight ? 'border-gray-200' : 'border-gray-800'
   };
 
-  // Dynamic SEO based on testimonial data
+  // Dynamic SEO
   useSEO({
     title: testimonial 
       ? `${testimonial.name} | Testimonial — ProofCollector`
@@ -58,88 +58,73 @@ export const TestimonialView = () => {
     type: 'article'
   });
 
-  useEffect(() => {
-    const fetchTestimonialWithTimeout = async () => {
-      if (!id) {
-        console.log('❌ No testimonial ID provided');
-        setError("No testimonial ID provided");
-        setLoading(false);
+  const fetchTestimonial = useCallback(async () => {
+    if (!id) {
+      console.log('❌ No testimonial ID provided');
+      setError("No testimonial ID provided");
+      setLoading(false);
+      return;
+    }
+
+    console.log('🔄 Fetching testimonial with ID:', id);
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error: fetchError } = await supabase
+        .from('testimonials')
+        .select(`
+          *,
+          survey:surveys (
+            id,
+            title,
+            question
+          )
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('❌ Supabase error:', fetchError);
+        throw new Error('Failed to load testimonial');
+      }
+
+      if (!data) {
+        console.log('📭 No testimonial found with ID:', id);
+        setError("Testimonial not found");
+        setTestimonial(null);
         return;
       }
 
-      console.log('🔄 Fetching testimonial with ID:', id);
-      
-      // Set timeout to prevent infinite loading
-      const timeoutId = setTimeout(() => {
-        console.log('⏰ Testimonial fetch timeout after 10 seconds');
-        setError("Request timeout - please try again");
-        setLoading(false);
-      }, 10000);
-
-      try {
-        const { data, error } = await supabase
-          .from('testimonials')
-          .select(`
-            *,
-            survey:surveys (
-              id,
-              title,
-              question
-            )
-          `)
-          .eq('id', id)
-          .maybeSingle();
-
-        clearTimeout(timeoutId);
-
-        if (error) {
-          console.error('❌ Supabase error:', error);
-          if (error.code === 'PGRST116') {
-            setError("Social proof not found");
-          } else {
-            setError("Failed to load social proof");
-          }
-          return;
-        }
-
-        if (!data) {
-          console.log('📭 No testimonial found with ID:', id);
-          setError("Social proof not found");
-          return;
-        }
-
-        console.log('✅ Testimonial data loaded:', data);
-        setTestimonial(data);
-        setError(null);
-      } catch (err) {
-        clearTimeout(timeoutId);
-        console.error('💥 Error fetching testimonial:', err);
-        setError("Failed to load social proof");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Reset state when id changes
-    setLoading(true);
-    setError(null);
-    setTestimonial(null);
-    
-    fetchTestimonialWithTimeout();
+      console.log('✅ Testimonial data loaded:', data);
+      setTestimonial(data);
+      setError(null);
+    } catch (err) {
+      console.error('💥 Error fetching testimonial:', err);
+      setError("Failed to load testimonial");
+      setTestimonial(null);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
+
+  useEffect(() => {
+    fetchTestimonial();
+  }, [fetchTestimonial]);
 
   if (loading) {
     return (
       <div className={`min-h-screen ${themeStyles.background} flex items-center justify-center`}>
         <div className="text-center">
           <div className={`animate-spin rounded-full h-8 w-8 border-b-2 ${isLight ? 'border-indigo-500' : 'border-purple-500'} mx-auto mb-4`}></div>
-          <p className={themeStyles.textSecondary}>Loading social proof...</p>
+          <p className={themeStyles.textSecondary}>Loading testimonial...</p>
           <p className="text-gray-500 text-sm mt-4">
             Taking too long? <button 
-              onClick={() => window.location.reload()} 
+              onClick={fetchTestimonial} 
               className={`${themeStyles.accent} hover:opacity-75 underline`}
             >
-              Refresh page
+              Try again
             </button>
           </p>
         </div>
@@ -152,15 +137,21 @@ export const TestimonialView = () => {
       <div className={`min-h-screen ${themeStyles.background} flex items-center justify-center`}>
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-6xl mb-4">😔</div>
-          <h1 className={`text-2xl font-bold mb-2 ${themeStyles.textPrimary}`}>Social Proof Not Found</h1>
+          <h1 className={`text-2xl font-bold mb-2 ${themeStyles.textPrimary}`}>Testimonial Not Found</h1>
           <p className={`${themeStyles.textSecondary} mb-4`}>
-            {error || "The social proof you're looking for doesn't exist or has been removed."}
+            {error || "The testimonial you're looking for doesn't exist or has been removed."}
           </p>
           <button 
-            onClick={() => window.location.reload()}
-            className={`px-4 py-2 ${themeStyles.accent} hover:opacity-75 underline text-sm`}
+            onClick={fetchTestimonial}
+            className={`px-4 py-2 ${themeStyles.accent} hover:opacity-75 underline text-sm mr-4`}
           >
             Try Again
+          </button>
+          <button 
+            onClick={() => window.history.back()}
+            className={`px-4 py-2 ${themeStyles.accent} hover:opacity-75 underline text-sm`}
+          >
+            Go Back
           </button>
           <p className={`text-sm ${themeStyles.textMuted} mt-4`}>
             Powered by <span className={`font-semibold ${themeStyles.accent}`}>ProofCollector</span>
@@ -226,7 +217,7 @@ export const TestimonialView = () => {
             {/* Badge */}
             <div className="text-center">
               <Badge variant="secondary" className={themeStyles.success}>
-                ✓ Verified Social Proof
+                ✓ Verified Testimonial
               </Badge>
             </div>
 

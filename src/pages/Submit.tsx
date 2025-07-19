@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,13 +23,11 @@ interface Survey {
 
 const Submit = () => {
   const { linkId, id } = useParams();
-  // Use either linkId (from /submit/:linkId) or id (from /link/:id)
   const surveyId = linkId || id;
   
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notFound, setNotFound] = useState(false);
   const [formData, setFormData] = useState<TestimonialFormData>({
     name: "",
     email: "",
@@ -42,7 +40,7 @@ const Submit = () => {
   const [cooldownTime, setCooldownTime] = useState<number>(0);
   const { toast } = useToast();
 
-  // Dynamic SEO based on survey data and submission state
+  // Dynamic SEO
   useSEO({
     title: isSubmitted 
       ? 'Thank You! | Testimonial Submitted — ProofCollector'
@@ -53,78 +51,59 @@ const Submit = () => {
       ? 'Thank you for submitting your testimonial! Your feedback helps build trust and credibility.'
       : survey
         ? `Share your experience about ${survey.title}. Your testimonial will help others make informed decisions.`
-        : 'Easily submit your testimonial using the secure ProofCollector form. Help build trust and credibility.',
+        : 'Easily submit your testimonial using the secure ProofCollector form.',
     image: 'https://proofcollector.shacnisaas.com/og-submit.png',
     url: surveyId ? `https://proofcollector.shacnisaas.com/link/${surveyId}` : undefined,
     type: 'website'
   });
 
-  useEffect(() => {
-    const fetchSurveyWithTimeout = async () => {
-      if (!surveyId) {
-        console.log('❌ No survey ID provided');
-        setError('No survey ID provided');
-        setNotFound(true);
-        setLoading(false);
+  const fetchSurvey = useCallback(async () => {
+    if (!surveyId) {
+      console.log('❌ No survey ID provided');
+      setError('No survey ID provided');
+      setLoading(false);
+      return;
+    }
+
+    console.log('🔄 Fetching survey with ID:', surveyId);
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      const { data, error: fetchError } = await supabase
+        .from('surveys')
+        .select('id, title, question, user_id, created_at')
+        .eq('id', surveyId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('❌ Supabase error:', fetchError);
+        throw new Error('Failed to load survey');
+      }
+
+      if (!data) {
+        console.log('📭 No survey found with ID:', surveyId);
+        setError('Survey not found');
+        setSurvey(null);
         return;
       }
 
-      console.log('🔄 Starting survey fetch for ID:', surveyId);
-      
-      // Set a timeout to prevent infinite loading
-      const timeoutId = setTimeout(() => {
-        console.log('⏰ Survey fetch timeout after 10 seconds');
-        setError('Request timeout - please try again');
-        setLoading(false);
-      }, 10000);
-
-      try {
-        const { data, error } = await supabase
-          .from('surveys')
-          .select('id, title, question, user_id, created_at')
-          .eq('id', surveyId)
-          .maybeSingle();
-
-        clearTimeout(timeoutId);
-
-        console.log('📋 Survey fetch result:', { data, error });
-
-        if (error) {
-          console.error('❌ Supabase error:', error);
-          setError('Failed to load survey');
-          setNotFound(true);
-          return;
-        }
-
-        if (!data) {
-          console.log('📭 No survey found with ID:', surveyId);
-          setError('Survey not found');
-          setNotFound(true);
-          return;
-        }
-
-        console.log('✅ Survey loaded successfully:', data);
-        setSurvey(data);
-        setError(null);
-        setNotFound(false);
-      } catch (err) {
-        clearTimeout(timeoutId);
-        console.error('💥 Unexpected error fetching survey:', err);
-        setError('Unexpected error occurred');
-        setNotFound(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Reset state when surveyId changes
-    setLoading(true);
-    setError(null);
-    setNotFound(false);
-    setSurvey(null);
-    
-    fetchSurveyWithTimeout();
+      console.log('✅ Survey loaded successfully:', data);
+      setSurvey(data);
+      setError(null);
+    } catch (err) {
+      console.error('💥 Error fetching survey:', err);
+      setError('Failed to load survey');
+      setSurvey(null);
+    } finally {
+      setLoading(false);
+    }
   }, [surveyId]);
+
+  useEffect(() => {
+    fetchSurvey();
+  }, [fetchSurvey]);
 
   // Cooldown timer effect
   useEffect(() => {
@@ -172,9 +151,6 @@ const Submit = () => {
       return;
     }
 
-    console.log('🔄 Starting testimonial submission for survey:', survey.id);
-
-    // Validate form
     if (!validateForm()) {
       toast({
         title: "Validation Error",
@@ -185,8 +161,8 @@ const Submit = () => {
     }
 
     // Check rate limiting
-    const clientIP = 'user'; // In production, get actual IP
-    const rateCheck = checkRateLimit(`testimonial_${clientIP}`, 3, 15 * 60 * 1000); // 3 submissions per 15 minutes
+    const clientIP = 'user';
+    const rateCheck = checkRateLimit(`testimonial_${clientIP}`, 3, 15 * 60 * 1000);
     
     if (!rateCheck.allowed) {
       setRateLimited(true);
@@ -201,19 +177,7 @@ const Submit = () => {
     
     setSubmitting(true);
 
-    // Set timeout for submission
-    const timeoutId = setTimeout(() => {
-      console.log('⏰ Testimonial submission timeout');
-      setSubmitting(false);
-      toast({
-        title: "Submission Timeout",
-        description: "The submission is taking too long. Please try again.",
-        variant: "destructive",
-      });
-    }, 15000);
-
     try {
-      // Sanitize form data
       const sanitizedData = {
         survey_id: survey.id,
         name: sanitizeText(formData.name),
@@ -228,8 +192,6 @@ const Submit = () => {
         .insert([sanitizedData])
         .select();
 
-      clearTimeout(timeoutId);
-
       if (error) {
         console.error('❌ Error inserting testimonial:', error);
         throw error;
@@ -238,8 +200,6 @@ const Submit = () => {
       console.log('✅ Testimonial submitted successfully:', data);
 
       setIsSubmitted(true);
-      
-      // Clear form data for security
       setFormData({ name: "", email: "", testimonial: "" });
       
       toast({
@@ -248,7 +208,6 @@ const Submit = () => {
       });
       
     } catch (error) {
-      clearTimeout(timeoutId);
       console.error('💥 Error submitting testimonial:', error);
       toast({
         title: "Submission Failed",
@@ -264,13 +223,11 @@ const Submit = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear error when user starts typing
     if (errors[name as keyof TestimonialFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
   };
 
-  // Loading state with timeout protection
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -278,10 +235,10 @@ const Submit = () => {
           <LoadingSpinner message="Loading survey..." />
           <p className="text-gray-500 text-sm mt-4">
             Taking too long? <button 
-              onClick={() => window.location.reload()} 
+              onClick={fetchSurvey} 
               className="text-purple-400 hover:text-purple-300 underline"
             >
-              Refresh page
+              Try again
             </button>
           </p>
         </div>
@@ -289,17 +246,14 @@ const Submit = () => {
     );
   }
 
-  // Error states
-  if (error || notFound || !survey) {
+  if (error || !survey) {
     return <SurveyNotFound />;
   }
 
-  // Success state
   if (isSubmitted) {
     return <TestimonialSuccess surveyTitle={survey?.title} />;
   }
 
-  // Main form
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-2xl">
