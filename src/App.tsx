@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppLayout } from "@/components/AppLayout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -20,44 +21,54 @@ import TestimonialView from "./pages/TestimonialView";
 import NotFound from "./pages/NotFound";
 import Sitemap from "./pages/Sitemap";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              
-              {/* Protected routes */}
-              <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
-              <Route path="/testimonials" element={<AppLayout><Testimonials /></AppLayout>} />
-              <Route path="/billing" element={<AppLayout><Billing /></AppLayout>} />
-              <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
-              
-              {/* Public routes for testimonial submission and viewing */}
-              <Route path="/submit/:linkId" element={<Submit />} />
-              <Route path="/link/:id" element={<Submit />} />
-              <Route path="/t/:id" element={<TestimonialView />} />
-              
-              {/* Sitemap route */}
-              <Route path="/sitemap.xml" element={<Sitemap />} />
-              
-              {/* 404 route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                
+                {/* Protected routes */}
+                <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
+                <Route path="/testimonials" element={<AppLayout><Testimonials /></AppLayout>} />
+                <Route path="/billing" element={<AppLayout><Billing /></AppLayout>} />
+                <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
+                
+                {/* Public routes for testimonial submission and viewing */}
+                <Route path="/submit/:linkId" element={<Submit />} />
+                <Route path="/link/:id" element={<Submit />} />
+                <Route path="/t/:id" element={<TestimonialView />} />
+                
+                {/* Sitemap route */}
+                <Route path="/sitemap.xml" element={<Sitemap />} />
+                
+                {/* 404 route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

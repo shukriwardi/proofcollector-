@@ -28,6 +28,7 @@ const Submit = () => {
   
   const [survey, setSurvey] = useState<Survey | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [formData, setFormData] = useState<TestimonialFormData>({
     name: "",
@@ -59,12 +60,70 @@ const Submit = () => {
   });
 
   useEffect(() => {
-    if (surveyId) {
-      fetchSurvey();
-    } else {
-      setLoading(false);
-      setNotFound(true);
-    }
+    const fetchSurveyWithTimeout = async () => {
+      if (!surveyId) {
+        console.log('❌ No survey ID provided');
+        setError('No survey ID provided');
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      console.log('🔄 Starting survey fetch for ID:', surveyId);
+      
+      // Set a timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        console.log('⏰ Survey fetch timeout after 10 seconds');
+        setError('Request timeout - please try again');
+        setLoading(false);
+      }, 10000);
+
+      try {
+        const { data, error } = await supabase
+          .from('surveys')
+          .select('id, title, question, user_id, created_at')
+          .eq('id', surveyId)
+          .maybeSingle();
+
+        clearTimeout(timeoutId);
+
+        console.log('📋 Survey fetch result:', { data, error });
+
+        if (error) {
+          console.error('❌ Supabase error:', error);
+          setError('Failed to load survey');
+          setNotFound(true);
+          return;
+        }
+
+        if (!data) {
+          console.log('📭 No survey found with ID:', surveyId);
+          setError('Survey not found');
+          setNotFound(true);
+          return;
+        }
+
+        console.log('✅ Survey loaded successfully:', data);
+        setSurvey(data);
+        setError(null);
+        setNotFound(false);
+      } catch (err) {
+        clearTimeout(timeoutId);
+        console.error('💥 Unexpected error fetching survey:', err);
+        setError('Unexpected error occurred');
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Reset state when surveyId changes
+    setLoading(true);
+    setError(null);
+    setNotFound(false);
+    setSurvey(null);
+    
+    fetchSurveyWithTimeout();
   }, [surveyId]);
 
   // Cooldown timer effect
@@ -83,40 +142,6 @@ const Submit = () => {
     }
     return () => clearInterval(interval);
   }, [cooldownTime]);
-
-  const fetchSurvey = async () => {
-    try {
-      console.log('Fetching survey with ID:', surveyId);
-      
-      const { data, error } = await supabase
-        .from('surveys')
-        .select('id, title, question, user_id, created_at')
-        .eq('id', surveyId)
-        .maybeSingle();
-
-      console.log('Survey fetch result:', { data, error });
-
-      if (error) {
-        console.error('Supabase error:', error);
-        setNotFound(true);
-        return;
-      }
-
-      if (!data) {
-        console.log('No survey found with ID:', surveyId);
-        setNotFound(true);
-        return;
-      }
-
-      console.log('Survey data fetched successfully:', data);
-      setSurvey(data);
-    } catch (error) {
-      console.error('Error fetching survey:', error);
-      setNotFound(true);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const validateForm = (): boolean => {
     try {
@@ -138,11 +163,16 @@ const Submit = () => {
     e.preventDefault();
     
     if (!survey) {
-      console.error('No survey available for submission');
+      console.error('❌ No survey available for submission');
+      toast({
+        title: "Error",
+        description: "Survey not available. Please refresh the page.",
+        variant: "destructive",
+      });
       return;
     }
 
-    console.log('Starting testimonial submission for survey:', survey.id);
+    console.log('🔄 Starting testimonial submission for survey:', survey.id);
 
     // Validate form
     if (!validateForm()) {
@@ -171,6 +201,17 @@ const Submit = () => {
     
     setSubmitting(true);
 
+    // Set timeout for submission
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ Testimonial submission timeout');
+      setSubmitting(false);
+      toast({
+        title: "Submission Timeout",
+        description: "The submission is taking too long. Please try again.",
+        variant: "destructive",
+      });
+    }, 15000);
+
     try {
       // Sanitize form data
       const sanitizedData = {
@@ -180,19 +221,21 @@ const Submit = () => {
         testimonial: sanitizeText(formData.testimonial)
       };
 
-      console.log('Submitting testimonial data:', sanitizedData);
+      console.log('📤 Submitting testimonial data:', sanitizedData);
 
       const { data, error } = await supabase
         .from('testimonials')
         .insert([sanitizedData])
         .select();
 
+      clearTimeout(timeoutId);
+
       if (error) {
-        console.error('Error inserting testimonial:', error);
+        console.error('❌ Error inserting testimonial:', error);
         throw error;
       }
 
-      console.log('Testimonial submitted successfully:', data);
+      console.log('✅ Testimonial submitted successfully:', data);
 
       setIsSubmitted(true);
       
@@ -205,7 +248,8 @@ const Submit = () => {
       });
       
     } catch (error) {
-      console.error('Error submitting testimonial:', error);
+      clearTimeout(timeoutId);
+      console.error('💥 Error submitting testimonial:', error);
       toast({
         title: "Submission Failed",
         description: getGenericErrorMessage('database'),
@@ -226,22 +270,36 @@ const Submit = () => {
     }
   };
 
+  // Loading state with timeout protection
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <LoadingSpinner message="Loading survey..." />
+        <div className="text-center">
+          <LoadingSpinner message="Loading survey..." />
+          <p className="text-gray-500 text-sm mt-4">
+            Taking too long? <button 
+              onClick={() => window.location.reload()} 
+              className="text-purple-400 hover:text-purple-300 underline"
+            >
+              Refresh page
+            </button>
+          </p>
+        </div>
       </div>
     );
   }
 
-  if (notFound || !survey) {
+  // Error states
+  if (error || notFound || !survey) {
     return <SurveyNotFound />;
   }
 
+  // Success state
   if (isSubmitted) {
     return <TestimonialSuccess surveyTitle={survey?.title} />;
   }
 
+  // Main form
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-2xl">
@@ -268,6 +326,7 @@ const Submit = () => {
                   className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 focus:outline-none"
                   placeholder="Enter your full name"
                   required
+                  disabled={submitting}
                 />
                 {errors.name && <p className="mt-1 text-sm text-red-400">{errors.name}</p>}
               </div>
@@ -284,6 +343,7 @@ const Submit = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 focus:outline-none"
                   placeholder="your.email@example.com"
+                  disabled={submitting}
                 />
                 {errors.email && <p className="mt-1 text-sm text-red-400">{errors.email}</p>}
               </div>
@@ -301,6 +361,7 @@ const Submit = () => {
                   className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:border-purple-500 focus:ring-purple-500 focus:outline-none resize-none"
                   placeholder="Share your experience, what you liked, and how it helped you..."
                   required
+                  disabled={submitting}
                 />
                 {errors.testimonial && <p className="mt-1 text-sm text-red-400">{errors.testimonial}</p>}
               </div>
