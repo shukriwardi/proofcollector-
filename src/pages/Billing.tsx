@@ -169,7 +169,7 @@ const Billing = () => {
               </div>
               <div className="flex items-center space-x-4">
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-white">${isPro ? "4" : "0"}</p>
+                  <p className="text-2xl font-bold text-white">${isPro ? "6.75" : "0"}</p>
                   <p className="text-gray-400">per month</p>
                 </div>
                 <Button
@@ -233,7 +233,7 @@ const Billing = () => {
             
             <div className="text-center mb-6 mt-4">
               <h3 className="text-xl font-semibold text-white mb-2">Pro</h3>
-              <div className="text-3xl font-bold text-white mb-2">$4</div>
+              <div className="text-3xl font-bold text-white mb-2">$6.75</div>
               <p className="text-gray-400">per month</p>
             </div>
             

@@ -64,11 +64,8 @@ serve(async (req) => {
         {
           price_data: {
             currency: "usd",
-            product_data: { 
-              name: "ProofCollector Pro Plan",
-              description: "Unlimited surveys, 250 responses/month, unlimited downloads/embeds, no branding, priority support"
-            },
-            unit_amount: 400, // $4.00
+            product: "prod_ShvFNs616xxIXM", // Your existing Pro Plan product
+            unit_amount: 675, // $6.75 in cents
             recurring: { interval: "month" },
           },
           quantity: 1,
@@ -80,7 +77,7 @@ serve(async (req) => {
       metadata: {
         user_id: user.id,
         user_email: user.email,
-        product_id: "prod_ShY08XG5qLmZTtRe",
+        product_id: "prod_ShvFNs616xxIXM",
       },
     });
 
