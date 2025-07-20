@@ -16,8 +16,7 @@ import {
   Settings, 
   LogOut, 
   User,
-  Menu,
-  CreditCard
+  Menu
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useState } from "react";
@@ -55,7 +54,6 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const navItems = [
     { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
     { path: "/testimonials", label: "Testimonials", icon: MessageSquare },
-    { path: "/billing", label: "Billing", icon: CreditCard },
   ];
 
   return (

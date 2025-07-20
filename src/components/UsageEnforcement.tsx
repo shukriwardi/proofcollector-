@@ -6,7 +6,6 @@ interface UsageEnforcementProps {
 }
 
 export const UsageEnforcement = ({ children }: UsageEnforcementProps) => {
-  // Always render children - no enforcement during testing
-  console.log('🔒 UsageEnforcement: Disabled (Stripe removed)');
+  // No usage enforcement - always render children
   return <>{children}</>;
 };

@@ -14,7 +14,6 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Testimonials from "./pages/Testimonials";
-import Billing from "./pages/Billing";
 import Settings from "./pages/Settings";
 import Submit from "./pages/Submit";
 import TestimonialView from "./pages/TestimonialView";
@@ -50,7 +49,6 @@ function App() {
                 {/* Protected routes */}
                 <Route path="/dashboard" element={<AppLayout><Dashboard /></AppLayout>} />
                 <Route path="/testimonials" element={<AppLayout><Testimonials /></AppLayout>} />
-                <Route path="/billing" element={<AppLayout><Billing /></AppLayout>} />
                 <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
                 
                 {/* Public routes for testimonial submission and viewing */}

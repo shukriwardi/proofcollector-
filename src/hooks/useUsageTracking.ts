@@ -1,8 +1,7 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 interface UsageData {
   surveys: { current: number; limit: number };
@@ -10,31 +9,24 @@ interface UsageData {
   downloads: { current: number; limit: number };
 }
 
-const USAGE_CACHE_KEY = 'usage_cache_v3';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
-
 export const useUsageTracking = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [usage, setUsage] = useState<UsageData>({
-    surveys: { current: 0, limit: 999 }, // Set high limits to effectively disable restrictions
-    responses: { current: 0, limit: 999 },
-    downloads: { current: 0, limit: 999 },
+    surveys: { current: 0, limit: Infinity },
+    responses: { current: 0, limit: Infinity },
+    downloads: { current: 0, limit: Infinity },
   });
-  const [loading, setLoading] = useState(false); // Disabled loading
+  const [loading, setLoading] = useState(false);
   
-  // Simplified - always return true for Pro-like experience
-  const isPro = true;
+  const isPro = false; // No subscription system
 
-  const fetchUsage = useCallback(async (forceRefresh = false) => {
+  const fetchUsage = useCallback(async () => {
     if (!user) {
       setLoading(false);
       return;
     }
 
     try {
-      console.log('📊 UsageTracking: Fetching basic usage data (Stripe disabled)...');
-      
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -53,26 +45,23 @@ export const useUsageTracking = () => {
       ]);
 
       const newUsage = {
-        surveys: { current: surveysResult.count || 0, limit: 999 },
-        responses: { current: responsesResult.count || 0, limit: 999 },
-        downloads: { current: 0, limit: 999 },
+        surveys: { current: surveysResult.count || 0, limit: Infinity },
+        responses: { current: responsesResult.count || 0, limit: Infinity },
+        downloads: { current: 0, limit: Infinity },
       };
 
       setUsage(newUsage);
-      console.log('✅ UsageTracking: Usage data updated (no limits):', newUsage);
-
     } catch (error) {
-      console.error('❌ UsageTracking: Error fetching usage:', error);
-      // Set fallback with high limits
+      console.error('Error fetching usage:', error);
       setUsage({
-        surveys: { current: 0, limit: 999 },
-        responses: { current: 0, limit: 999 },
-        downloads: { current: 0, limit: 999 },
+        surveys: { current: 0, limit: Infinity },
+        responses: { current: 0, limit: Infinity },
+        downloads: { current: 0, limit: Infinity },
       });
     } finally {
       setLoading(false);
     }
-  }, [user, toast]);
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -82,11 +71,11 @@ export const useUsageTracking = () => {
     }
   }, [user?.id, fetchUsage]);
 
-  const checkLimit = useCallback(() => false, []); // Always return false (no limits)
-  const canPerformAction = useCallback(() => true, []); // Always return true
-  const enforceLimit = useCallback(() => true, []); // Always allow
-  const showLimitAlert = useCallback(() => {}, []); // No-op
-  const refreshUsage = useCallback(() => fetchUsage(true), [fetchUsage]);
+  const checkLimit = useCallback(() => false, []);
+  const canPerformAction = useCallback(() => true, []);
+  const enforceLimit = useCallback(() => true, []);
+  const showLimitAlert = useCallback(() => {}, []);
+  const refreshUsage = useCallback(() => fetchUsage(), [fetchUsage]);
 
   return {
     usage,
