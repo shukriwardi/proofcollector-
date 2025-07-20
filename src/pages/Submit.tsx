@@ -41,17 +41,11 @@ const Submit = () => {
         const startTime = Date.now();
         
         // Use RPC call to get public survey data
-        const { data, error } = await supabase
-          .rpc('get_public_survey', { link_id: linkId })
-          .then(res => {
-            if (Array.isArray(res.data)) {
-              return { data: res.data[0], error: res.error };
-            }
-            return res;
-          });
+        const { data: rpcData, error } = await supabase
+          .rpc('get_public_survey', { link_id: linkId });
 
         const queryTime = Date.now() - startTime;
-        console.log(`📊 Submit: Survey RPC query completed in ${queryTime}ms:`, { data, error, linkId });
+        console.log(`📊 Submit: Survey RPC query completed in ${queryTime}ms:`, { data: rpcData, error, linkId });
 
         if (error) {
           console.error('❌ Submit: Database error:', error);
@@ -63,6 +57,9 @@ const Submit = () => {
           });
           throw error;
         }
+
+        // Handle the RPC response - it returns an array, so we take the first item
+        const data = Array.isArray(rpcData) && rpcData.length > 0 ? rpcData[0] : null;
 
         if (!data) {
           console.log('❌ Submit: Survey not found or not accessible');
