@@ -33,9 +33,8 @@ const Dashboard = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  console.log('🔄 Dashboard: Component rendered with user:', user?.id);
+  console.log('🔄 Dashboard: Component rendered (Stripe disabled) with user:', user?.id);
 
-  // Memoize survey stats to prevent recalculation on every render
   const totalTestimonials = useMemo(() => 
     surveys.reduce((sum, survey) => sum + (survey.testimonial_count || 0), 0), 
     [surveys]
@@ -50,16 +49,18 @@ const Dashboard = () => {
     
     try {
       setLoading(true);
-      console.log('📊 Dashboard: Starting fetchSurveys for user:', user.id);
+      console.log('📊 Dashboard: Starting fetchSurveys (Stripe disabled) for user:', user.id);
       
-      // Updated query to include is_public column
+      const startTime = Date.now();
+      
       const { data, error } = await supabase
         .from('surveys')
         .select('id, title, question, created_at, is_public')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      console.log('📊 Dashboard: Surveys query response:', { data, error });
+      const queryTime = Date.now() - startTime;
+      console.log(`📊 Dashboard: Surveys query completed in ${queryTime}ms:`, { data, error });
 
       if (error) {
         console.error('❌ Dashboard: Error fetching surveys:', error);
@@ -70,13 +71,14 @@ const Dashboard = () => {
         console.log('📊 Dashboard: Found surveys, fetching testimonial counts...');
         const surveyIds = data.map(s => s.id);
         
-        // Fetch testimonial counts separately
+        const testimonialsStartTime = Date.now();
         const { data: testimonialCounts, error: countError } = await supabase
           .from('testimonials')
           .select('survey_id')
           .in('survey_id', surveyIds);
 
-        console.log('📊 Dashboard: Testimonial counts query:', { testimonialCounts, countError });
+        const testimonialsQueryTime = Date.now() - testimonialsStartTime;
+        console.log(`📊 Dashboard: Testimonial counts query completed in ${testimonialsQueryTime}ms:`, { testimonialCounts, countError });
 
         const countMap = testimonialCounts?.reduce((acc, t) => {
           acc[t.survey_id] = (acc[t.survey_id] || 0) + 1;
@@ -94,6 +96,8 @@ const Dashboard = () => {
         console.log('📊 Dashboard: No surveys found, setting empty array');
         setSurveys(data || []);
       }
+      
+      console.log('✅ Dashboard: Loading completed successfully');
     } catch (error: any) {
       console.error('❌ Dashboard: Error in fetchSurveys:', error);
       toast({
@@ -103,20 +107,21 @@ const Dashboard = () => {
       });
       setSurveys([]);
     } finally {
-      console.log('📊 Dashboard: Setting loading to false');
+      const totalTime = Date.now();
+      console.log(`📊 Dashboard: Setting loading to false - total time: ${totalTime}ms`);
       setLoading(false);
     }
   }, [user?.id, toast]);
 
   useEffect(() => {
-    console.log('🔄 Dashboard: useEffect triggered with user.id:', user?.id);
+    console.log('🔄 Dashboard: useEffect triggered (Stripe disabled) with user.id:', user?.id);
     if (user?.id) {
       fetchSurveys();
     } else {
       console.log('📊 Dashboard: No user, setting loading to false');
       setLoading(false);
     }
-  }, [user?.id]); // Only depend on user.id
+  }, [user?.id, fetchSurveys]);
 
   const validateForm = useCallback((): boolean => {
     console.log('🔍 Dashboard: Validating form data:', formData);
@@ -138,7 +143,7 @@ const Dashboard = () => {
   }, [formData]);
 
   const handleCreateSurvey = useCallback(async () => {
-    console.log('🔄 Dashboard: handleCreateSurvey called');
+    console.log('🔄 Dashboard: handleCreateSurvey called (no usage limits)');
     if (creatingSurvey || !user?.id) {
       console.log('❌ Dashboard: Already creating or no user, aborting');
       return;
@@ -149,20 +154,6 @@ const Dashboard = () => {
       toast({
         title: "Validation Error",
         description: "Please fix the errors in the form.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Rate limiting for survey creation
-    const rateCheck = checkRateLimit(`survey_creation_${user.id}`, 10, 60 * 60 * 1000);
-    
-    if (!rateCheck.allowed) {
-      console.log('❌ Dashboard: Rate limit exceeded');
-      setRateLimited(true);
-      toast({
-        title: "Rate Limit Exceeded",
-        description: "You can create a maximum of 10 surveys per hour.",
         variant: "destructive",
       });
       return;
@@ -294,7 +285,7 @@ const Dashboard = () => {
     }
   }, [copyToClipboard]);
 
-  console.log('📊 Dashboard: Current state:', { loading, surveys: surveys.length, user: !!user });
+  console.log('📊 Dashboard: Current state (Stripe disabled):', { loading, surveys: surveys.length, user: !!user });
 
   if (loading) {
     console.log('⏳ Dashboard: Showing loading spinner');
@@ -307,16 +298,15 @@ const Dashboard = () => {
     );
   }
 
-  console.log('✅ Dashboard: Rendering main dashboard content');
+  console.log('✅ Dashboard: Rendering main dashboard content (Stripe disabled)');
 
   return (
     <div className="min-h-screen bg-black">
       <div className="space-y-8 p-6 lg:p-8">
-        {/* Header */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-            <p className="text-gray-400 mt-2">Manage your testimonial surveys</p>
+            <p className="text-gray-400 mt-2">Manage your testimonial surveys (Testing Mode - No Limits)</p>
           </div>
           
           <CreateSurveyDialog
@@ -331,14 +321,12 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Stats Overview */}
         <DashboardStats 
           totalSurveys={surveys.length}
           totalTestimonials={totalTestimonials}
           activeSurveys={surveys.length}
         />
 
-        {/* Surveys */}
         <div>
           <h2 className="text-xl font-semibold text-white mb-6">Your Surveys</h2>
           
