@@ -1,22 +1,26 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { TestimonialHeader } from "@/components/testimonials/TestimonialHeader";
+import { TestimonialList } from "@/components/testimonials/TestimonialList";
 import { TestimonialStats } from "@/components/testimonials/TestimonialStats";
 import { TestimonialFilters } from "@/components/testimonials/TestimonialFilters";
-import { TestimonialSearch } from "@/components/testimonials/TestimonialSearch";
-import { TestimonialList } from "@/components/testimonials/TestimonialList";
-import { LoadingSpinner } from "@/components/testimonials/LoadingSpinner";
+import { TestimonialView } from "@/components/testimonials/TestimonialView";
+import { TestimonialEmbed } from "@/components/testimonials/TestimonialEmbed";
+import { TestimonialDownload } from "@/components/testimonials/TestimonialDownload";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Testimonial {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   testimonial: string;
   created_at: string;
-  surveys: {
+  survey: {
     id: string;
     title: string;
+    question: string;
   };
 }
 
@@ -26,173 +30,182 @@ interface Survey {
 }
 
 const Testimonials = () => {
-  const { user } = useAuth();
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [surveys, setSurveys] = useState<Survey[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedSurvey, setSelectedSurvey] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
-
-  console.log('🔄 Testimonials: Component rendered (Stripe disabled) with user:', user?.id);
-
-  const fetchData = useCallback(async () => {
-    if (!user?.id) {
-      console.log('❌ Testimonials: No user ID, skipping fetch');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      console.log('📊 Testimonials: Starting data fetch (Stripe disabled) for user:', user.id);
-      
-      const startTime = Date.now();
-
-      // Fetch surveys first
-      const { data: surveyData, error: surveyError } = await supabase
-        .from('surveys')
-        .select('id, title')
-        .eq('user_id', user.id)
-        .order('title');
-
-      const surveyQueryTime = Date.now() - startTime;
-      console.log(`📊 Testimonials: Surveys query completed in ${surveyQueryTime}ms:`, { surveyData, surveyError });
-
-      if (surveyError) throw surveyError;
-
-      setSurveys(surveyData || []);
-
-      // Fetch testimonials
-      const testimonialsStartTime = Date.now();
-      const { data: testimonialData, error: testimonialError } = await supabase
-        .from('testimonials')
-        .select(`
-          id,
-          name,
-          email,
-          testimonial,
-          created_at,
-          surveys!inner (
-            id,
-            title,
-            user_id
-          )
-        `)
-        .eq('surveys.user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      const testimonialsQueryTime = Date.now() - testimonialsStartTime;
-      console.log(`📊 Testimonials: Testimonials query completed in ${testimonialsQueryTime}ms:`, { testimonialData, testimonialError });
-
-      if (testimonialError) throw testimonialError;
-
-      setTestimonials(testimonialData || []);
-      console.log('✅ Testimonials: Data loaded successfully');
-
-    } catch (error) {
-      console.error('❌ Testimonials: Error fetching data:', error);
-      setTestimonials([]);
-      setSurveys([]);
-    } finally {
-      const totalTime = Date.now();
-      console.log(`📊 Testimonials: Setting loading to false - total time: ${totalTime}ms`);
-      setLoading(false);
-    }
-  }, [user?.id]);
+  const [selectedSurvey, setSelectedSurvey] = useState("all");
+  const [viewingTestimonial, setViewingTestimonial] = useState<Testimonial | null>(null);
+  const [embeddingTestimonial, setEmbeddingTestimonial] = useState<Testimonial | null>(null);
+  const [downloadingTestimonial, setDownloadingTestimonial] = useState<Testimonial | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
-    console.log('🔄 Testimonials: useEffect triggered (Stripe disabled) with user.id:', user?.id);
-    if (user?.id) {
-      fetchData();
-    } else {
-      console.log('📊 Testimonials: No user, setting loading to false');
+    fetchTestimonials();
+    fetchSurveys();
+  }, []);
+
+  const fetchTestimonials = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('testimonials')
+        .select('*, survey:survey_id(id, title, question)')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching testimonials:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load testimonials.",
+          variant: "destructive",
+        });
+      } else {
+        setTestimonials(data || []);
+      }
+    } finally {
       setLoading(false);
     }
-  }, [user?.id, fetchData]);
+  };
 
-  const filteredTestimonials = useMemo(() => {
-    return testimonials.filter(testimonial => {
-      const matchesSurvey = selectedSurvey === "all" || testimonial.surveys.id === selectedSurvey;
-      const matchesSearch = !searchTerm || 
-        testimonial.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        testimonial.testimonial.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        testimonial.surveys.title.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      return matchesSurvey && matchesSearch;
-    });
-  }, [testimonials, selectedSurvey, searchTerm]);
-
-  const handleDeleteTestimonial = useCallback(async (testimonialId: string) => {
+  const fetchSurveys = async () => {
     try {
-      console.log('🗑️ Testimonials: Deleting testimonial:', testimonialId);
+      const { data, error } = await supabase
+        .from('surveys')
+        .select('id, title');
+
+      if (error) {
+        console.error("Error fetching surveys:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load surveys.",
+          variant: "destructive",
+        });
+      } else {
+        setSurveys(data || []);
+      }
+    } catch (error) {
+      console.error("Unexpected error fetching surveys:", error);
+      toast({
+        title: "Unexpected Error",
+        description: "Failed to load surveys due to an unexpected error.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteTestimonial = async (testimonialId: string) => {
+    try {
       const { error } = await supabase
         .from('testimonials')
         .delete()
         .eq('id', testimonialId);
 
-      if (error) throw error;
-
-      setTestimonials(prev => prev.filter(t => t.id !== testimonialId));
-      console.log('✅ Testimonials: Testimonial deleted successfully');
+      if (error) {
+        console.error("Error deleting testimonial:", error);
+        toast({
+          title: "Error",
+          description: "Failed to delete testimonial.",
+          variant: "destructive",
+        });
+      } else {
+        setTestimonials(testimonials.filter(t => t.id !== testimonialId));
+        toast({
+          title: "Success",
+          description: "Testimonial deleted successfully.",
+        });
+      }
     } catch (error) {
-      console.error('❌ Testimonials: Error deleting testimonial:', error);
+      console.error("Unexpected error deleting testimonial:", error);
+      toast({
+        title: "Unexpected Error",
+        description: "Failed to delete testimonial due to an unexpected error.",
+        variant: "destructive",
+      });
     }
-  }, []);
+  };
 
-  console.log('📊 Testimonials: Current state (Stripe disabled):', { 
-    loading, 
-    testimonials: testimonials.length, 
-    surveys: surveys.length,
-    filtered: filteredTestimonials.length,
-    user: !!user 
-  });
+  const handleSurveyChange = (surveyId: string) => {
+    setSelectedSurvey(surveyId);
+  };
 
-  if (loading) {
-    console.log('⏳ Testimonials: Showing loading spinner');
-    return (
-      <div className="min-h-screen bg-black">
-        <div className="flex items-center justify-center min-h-screen">
-          <LoadingSpinner message="Loading testimonials..." />
-        </div>
-      </div>
-    );
-  }
+  const filteredTestimonials = selectedSurvey === "all"
+    ? testimonials
+    : testimonials.filter(t => t.survey.id === selectedSurvey);
 
-  console.log('✅ Testimonials: Rendering main testimonials content (Stripe disabled)');
+  const totalTestimonials = testimonials.length;
+  const totalSurveys = surveys.length;
+  const averageRating = 5;
 
   return (
-    <div className="min-h-screen bg-black">
-      <div className="space-y-8 p-6 lg:p-8">
-        <TestimonialHeader />
-        
-        <TestimonialStats 
-          totalTestimonials={testimonials.length}
-          totalSurveys={surveys.length}
-          averageRating={0}
-        />
+    <div className="container mx-auto py-10">
+      {/* Stats Section */}
+      <TestimonialStats
+        totalTestimonials={totalTestimonials}
+        totalSurveys={totalSurveys}
+        averageRating={averageRating}
+      />
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="lg:w-1/4">
-            <TestimonialFilters
-              surveys={surveys}
-              selectedSurvey={selectedSurvey}
-              onSurveyChange={setSelectedSurvey}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
+        {/* Filters Section */}
+        <div className="md:col-span-1">
+          <TestimonialFilters
+            surveys={surveys}
+            selectedSurvey={selectedSurvey}
+            onSurveyChange={handleSurveyChange}
+          />
+        </div>
+
+        {/* List and Search Section */}
+        <div className="md:col-span-3">
+          <div className="mb-4 flex items-center">
+            <Input
+              type="search"
+              placeholder="Search testimonials..."
+              className="bg-gray-800 border-gray-700 text-white shadow-none focus-visible:ring-purple-500 focus-visible:ring-offset-0"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
+            <Button variant="outline" className="ml-2">
+              <Search className="h-4 w-4 mr-2" />
+              Search
+            </Button>
           </div>
 
-          <div className="lg:w-3/4">
-            <TestimonialSearch
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-            />
-
+          {loading ? (
+            <p className="text-gray-500">Loading testimonials...</p>
+          ) : (
             <TestimonialList
               testimonials={filteredTestimonials}
+              searchTerm={searchTerm}
+              onView={(testimonial) => setViewingTestimonial(testimonial)}
+              onEmbed={(testimonial) => setEmbeddingTestimonial(testimonial)}
+              onDownload={(testimonial) => setDownloadingTestimonial(testimonial)}
               onDelete={handleDeleteTestimonial}
             />
-          </div>
+          )}
         </div>
       </div>
+
+      {/* Modals */}
+      {viewingTestimonial && (
+        <TestimonialView
+          testimonial={viewingTestimonial}
+          onClose={() => setViewingTestimonial(null)}
+        />
+      )}
+      {embeddingTestimonial && (
+        <TestimonialEmbed
+          testimonial={embeddingTestimonial}
+          onClose={() => setEmbeddingTestimonial(null)}
+        />
+      )}
+      {downloadingTestimonial && (
+        <TestimonialDownload
+          testimonial={downloadingTestimonial}
+          onClose={() => setDownloadingTestimonial(null)}
+        />
+      )}
     </div>
   );
 };

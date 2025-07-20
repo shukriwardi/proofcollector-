@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 // Enhanced validation with stricter security rules
@@ -95,6 +94,26 @@ export const profileSchema = z.object({
     }, 'Username is reserved')
     .transform(sanitizeInput)
 });
+
+// Client-side validation helper function
+export const validateTestimonial = (data: unknown): { success: true; data: TestimonialFormData } | { success: false; errors: Partial<TestimonialFormData> } => {
+  try {
+    const validatedData = testimonialSchema.parse(data);
+    return { success: true, data: validatedData };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errors: Partial<TestimonialFormData> = {};
+      error.errors.forEach((err) => {
+        if (err.path.length > 0) {
+          const field = err.path[0] as keyof TestimonialFormData;
+          errors[field] = err.message;
+        }
+      });
+      return { success: false, errors };
+    }
+    return { success: false, errors: { testimonial: 'Validation failed' } };
+  }
+};
 
 // Server-side validation function
 export const validateOnServer = async <T>(
