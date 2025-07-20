@@ -1,5 +1,7 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { TestimonialList } from "@/components/testimonials/TestimonialList";
 import { TestimonialStats } from "@/components/testimonials/TestimonialStats";
 import { TestimonialFilters } from "@/components/testimonials/TestimonialFilters";
@@ -10,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { LoadingSpinner } from "@/components/testimonials/LoadingSpinner";
 
 interface Testimonial {
   id: string;
@@ -39,76 +42,138 @@ const Testimonials = () => {
   const [downloadingTestimonial, setDownloadingTestimonial] = useState<Testimonial | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
+
+  console.log('🔄 Testimonials: Component rendered with user:', user?.id, 'authLoading:', authLoading);
 
   useEffect(() => {
-    fetchTestimonials();
-    fetchSurveys();
-  }, []);
+    console.log('🔄 Testimonials: useEffect triggered with user.id:', user?.id, 'authLoading:', authLoading);
+    if (!authLoading) {
+      fetchTestimonials();
+      fetchSurveys();
+    }
+  }, [user?.id, authLoading]);
 
   const fetchTestimonials = async () => {
+    console.log('📊 Testimonials: fetchTestimonials called for user:', user?.id);
+    
+    if (!user?.id) {
+      console.log('❌ Testimonials: No user ID, setting loading to false');
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
+      console.log('📊 Testimonials: Starting testimonials fetch');
+      const startTime = Date.now();
+      
       const { data, error } = await supabase
         .from('testimonials')
         .select('*, survey:survey_id(id, title, question)')
         .order('created_at', { ascending: false });
 
+      const queryTime = Date.now() - startTime;
+      console.log(`📊 Testimonials: Query completed in ${queryTime}ms:`, { 
+        dataCount: data?.length, 
+        error,
+        userId: user.id 
+      });
+
       if (error) {
-        console.error("Error fetching testimonials:", error);
+        console.error("❌ Testimonials: Error fetching testimonials:", error);
         toast({
           title: "Error",
           description: "Failed to load testimonials.",
           variant: "destructive",
         });
+        setTestimonials([]);
       } else {
+        console.log('✅ Testimonials: Successfully loaded testimonials:', data?.length || 0);
         setTestimonials(data || []);
       }
+    } catch (error) {
+      console.error("❌ Testimonials: Unexpected error fetching testimonials:", error);
+      toast({
+        title: "Unexpected Error",
+        description: "Failed to load testimonials due to an unexpected error.",
+        variant: "destructive",
+      });
+      setTestimonials([]);
     } finally {
+      console.log('📊 Testimonials: Setting loading to false');
       setLoading(false);
     }
   };
 
   const fetchSurveys = async () => {
+    console.log('📊 Testimonials: fetchSurveys called for user:', user?.id);
+    
+    if (!user?.id) {
+      console.log('❌ Testimonials: No user ID for surveys fetch');
+      return;
+    }
+
     try {
+      console.log('📊 Testimonials: Starting surveys fetch');
+      const startTime = Date.now();
+      
       const { data, error } = await supabase
         .from('surveys')
-        .select('id, title');
+        .select('id, title')
+        .eq('user_id', user.id);
+
+      const queryTime = Date.now() - startTime;
+      console.log(`📊 Testimonials: Surveys query completed in ${queryTime}ms:`, { 
+        dataCount: data?.length, 
+        error,
+        userId: user.id 
+      });
 
       if (error) {
-        console.error("Error fetching surveys:", error);
+        console.error("❌ Testimonials: Error fetching surveys:", error);
         toast({
           title: "Error",
           description: "Failed to load surveys.",
           variant: "destructive",
         });
+        setSurveys([]);
       } else {
+        console.log('✅ Testimonials: Successfully loaded surveys:', data?.length || 0);
         setSurveys(data || []);
       }
     } catch (error) {
-      console.error("Unexpected error fetching surveys:", error);
+      console.error("❌ Testimonials: Unexpected error fetching surveys:", error);
       toast({
         title: "Unexpected Error",
         description: "Failed to load surveys due to an unexpected error.",
         variant: "destructive",
       });
+      setSurveys([]);
     }
   };
 
   const handleDeleteTestimonial = async (testimonialId: string) => {
+    console.log('🗑️ Testimonials: Deleting testimonial:', testimonialId);
     try {
+      const startTime = Date.now();
       const { error } = await supabase
         .from('testimonials')
         .delete()
         .eq('id', testimonialId);
 
+      const queryTime = Date.now() - startTime;
+      console.log(`📊 Testimonials: Delete query completed in ${queryTime}ms:`, { error });
+
       if (error) {
-        console.error("Error deleting testimonial:", error);
+        console.error("❌ Testimonials: Error deleting testimonial:", error);
         toast({
           title: "Error",
           description: "Failed to delete testimonial.",
           variant: "destructive",
         });
       } else {
+        console.log('✅ Testimonials: Testimonial deleted successfully');
         setTestimonials(testimonials.filter(t => t.id !== testimonialId));
         toast({
           title: "Success",
@@ -116,7 +181,7 @@ const Testimonials = () => {
         });
       }
     } catch (error) {
-      console.error("Unexpected error deleting testimonial:", error);
+      console.error("❌ Testimonials: Unexpected error deleting testimonial:", error);
       toast({
         title: "Unexpected Error",
         description: "Failed to delete testimonial due to an unexpected error.",
@@ -126,6 +191,7 @@ const Testimonials = () => {
   };
 
   const handleSurveyChange = (surveyId: string) => {
+    console.log('🔄 Testimonials: Survey filter changed to:', surveyId);
     setSelectedSurvey(surveyId);
   };
 
@@ -136,6 +202,39 @@ const Testimonials = () => {
   const totalTestimonials = testimonials.length;
   const totalSurveys = surveys.length;
   const averageRating = 5;
+
+  console.log('📊 Testimonials: Current state:', { 
+    loading, 
+    authLoading,
+    testimonials: testimonials.length, 
+    surveys: surveys.length,
+    user: !!user,
+    userId: user?.id 
+  });
+
+  if (authLoading) {
+    console.log('⏳ Testimonials: Auth still loading, showing spinner');
+    return (
+      <div className="min-h-screen bg-black">
+        <div className="flex items-center justify-center min-h-screen">
+          <LoadingSpinner message="Authenticating..." />
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    console.log('⏳ Testimonials: Data loading, showing spinner');
+    return (
+      <div className="min-h-screen bg-black">
+        <div className="flex items-center justify-center min-h-screen">
+          <LoadingSpinner message="Loading testimonials..." />
+        </div>
+      </div>
+    );
+  }
+
+  console.log('✅ Testimonials: Rendering main testimonials content');
 
   return (
     <div className="container mx-auto py-10">
@@ -172,18 +271,14 @@ const Testimonials = () => {
             </Button>
           </div>
 
-          {loading ? (
-            <p className="text-gray-500">Loading testimonials...</p>
-          ) : (
-            <TestimonialList
-              testimonials={filteredTestimonials}
-              searchTerm={searchTerm}
-              onView={(testimonial) => setViewingTestimonial(testimonial)}
-              onEmbed={(testimonial) => setEmbeddingTestimonial(testimonial)}
-              onDownload={(testimonial) => setDownloadingTestimonial(testimonial)}
-              onDelete={handleDeleteTestimonial}
-            />
-          )}
+          <TestimonialList
+            testimonials={filteredTestimonials}
+            searchTerm={searchTerm}
+            onView={(testimonial) => setViewingTestimonial(testimonial)}
+            onEmbed={(testimonial) => setEmbeddingTestimonial(testimonial)}
+            onDownload={(testimonial) => setDownloadingTestimonial(testimonial)}
+            onDelete={handleDeleteTestimonial}
+          />
         </div>
       </div>
 

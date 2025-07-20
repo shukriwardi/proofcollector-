@@ -31,9 +31,9 @@ const Dashboard = () => {
   const [creatingSurvey, setCreatingSurvey] = useState(false);
   const [rateLimited, setRateLimited] = useState(false);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
-  console.log('🔄 Dashboard: Component rendered (Stripe disabled) with user:', user?.id);
+  console.log('🔄 Dashboard: Component rendered with user:', user?.id, 'authLoading:', authLoading);
 
   const totalTestimonials = useMemo(() => 
     surveys.reduce((sum, survey) => sum + (survey.testimonial_count || 0), 0), 
@@ -41,15 +41,22 @@ const Dashboard = () => {
   );
 
   const fetchSurveys = useCallback(async () => {
+    console.log('📊 Dashboard: fetchSurveys called - user:', user?.id, 'authLoading:', authLoading);
+    
+    if (authLoading) {
+      console.log('⏳ Dashboard: Auth still loading, skipping fetch');
+      return;
+    }
+    
     if (!user?.id) {
-      console.log('❌ Dashboard: No user ID, skipping fetch');
+      console.log('❌ Dashboard: No user ID, setting loading to false');
       setLoading(false);
       return;
     }
     
     try {
       setLoading(true);
-      console.log('📊 Dashboard: Starting fetchSurveys (Stripe disabled) for user:', user.id);
+      console.log('📊 Dashboard: Starting fetchSurveys for user:', user.id);
       
       const startTime = Date.now();
       
@@ -60,7 +67,11 @@ const Dashboard = () => {
         .order('created_at', { ascending: false });
 
       const queryTime = Date.now() - startTime;
-      console.log(`📊 Dashboard: Surveys query completed in ${queryTime}ms:`, { data, error });
+      console.log(`📊 Dashboard: Surveys query completed in ${queryTime}ms:`, { 
+        dataCount: data?.length, 
+        error,
+        userId: user.id 
+      });
 
       if (error) {
         console.error('❌ Dashboard: Error fetching surveys:', error);
@@ -78,7 +89,14 @@ const Dashboard = () => {
           .in('survey_id', surveyIds);
 
         const testimonialsQueryTime = Date.now() - testimonialsStartTime;
-        console.log(`📊 Dashboard: Testimonial counts query completed in ${testimonialsQueryTime}ms:`, { testimonialCounts, countError });
+        console.log(`📊 Dashboard: Testimonial counts query completed in ${testimonialsQueryTime}ms:`, { 
+          testimonialCounts: testimonialCounts?.length, 
+          countError 
+        });
+
+        if (countError) {
+          console.error('⚠️ Dashboard: Error fetching testimonial counts (non-fatal):', countError);
+        }
 
         const countMap = testimonialCounts?.reduce((acc, t) => {
           acc[t.survey_id] = (acc[t.survey_id] || 0) + 1;
@@ -90,7 +108,7 @@ const Dashboard = () => {
           testimonial_count: countMap[survey.id] || 0
         }));
 
-        console.log('✅ Dashboard: Final surveys data:', surveysWithCounts);
+        console.log('✅ Dashboard: Final surveys data:', surveysWithCounts.length, 'surveys');
         setSurveys(surveysWithCounts);
       } else {
         console.log('📊 Dashboard: No surveys found, setting empty array');
@@ -108,20 +126,15 @@ const Dashboard = () => {
       setSurveys([]);
     } finally {
       const totalTime = Date.now();
-      console.log(`📊 Dashboard: Setting loading to false - total time: ${totalTime}ms`);
+      console.log(`📊 Dashboard: Setting loading to false - total operation time`);
       setLoading(false);
     }
-  }, [user?.id, toast]);
+  }, [user?.id, authLoading, toast]);
 
   useEffect(() => {
-    console.log('🔄 Dashboard: useEffect triggered (Stripe disabled) with user.id:', user?.id);
-    if (user?.id) {
-      fetchSurveys();
-    } else {
-      console.log('📊 Dashboard: No user, setting loading to false');
-      setLoading(false);
-    }
-  }, [user?.id, fetchSurveys]);
+    console.log('🔄 Dashboard: useEffect triggered with user.id:', user?.id, 'authLoading:', authLoading);
+    fetchSurveys();
+  }, [fetchSurveys]);
 
   const validateForm = useCallback((): boolean => {
     console.log('🔍 Dashboard: Validating form data:', formData);
@@ -143,7 +156,7 @@ const Dashboard = () => {
   }, [formData]);
 
   const handleCreateSurvey = useCallback(async () => {
-    console.log('🔄 Dashboard: handleCreateSurvey called (no usage limits)');
+    console.log('🔄 Dashboard: handleCreateSurvey called');
     if (creatingSurvey || !user?.id) {
       console.log('❌ Dashboard: Already creating or no user, aborting');
       return;
@@ -171,13 +184,15 @@ const Dashboard = () => {
 
       console.log('🔄 Dashboard: Sanitized survey data:', sanitizedData);
 
+      const startTime = Date.now();
       const { data, error } = await supabase
         .from('surveys')
         .insert([sanitizedData])
         .select()
         .single();
 
-      console.log('📊 Dashboard: Survey creation response:', { data, error });
+      const queryTime = Date.now() - startTime;
+      console.log(`📊 Dashboard: Survey creation completed in ${queryTime}ms:`, { data, error });
 
       if (error) throw error;
 
@@ -220,6 +235,7 @@ const Dashboard = () => {
   }, [errors]);
 
   const toggleSurveyPublic = useCallback(async (surveyId: string, currentPublicState: boolean) => {
+    console.log('🔄 Dashboard: Toggling survey public state:', surveyId, currentPublicState);
     try {
       const { error } = await supabase
         .from('surveys')
@@ -241,8 +257,9 @@ const Dashboard = () => {
           ? "Anyone with the link can now access this survey"
           : "Only you can access this survey now",
       });
+      console.log('✅ Dashboard: Survey visibility toggled successfully');
     } catch (error) {
-      console.error('Error toggling survey public state:', error);
+      console.error('❌ Dashboard: Error toggling survey public state:', error);
       toast({
         title: "Error",
         description: "Failed to update survey visibility",
@@ -285,10 +302,27 @@ const Dashboard = () => {
     }
   }, [copyToClipboard]);
 
-  console.log('📊 Dashboard: Current state (Stripe disabled):', { loading, surveys: surveys.length, user: !!user });
+  console.log('📊 Dashboard: Current state:', { 
+    loading, 
+    authLoading,
+    surveys: surveys.length, 
+    user: !!user,
+    userId: user?.id 
+  });
+
+  if (authLoading) {
+    console.log('⏳ Dashboard: Auth still loading, showing spinner');
+    return (
+      <div className="min-h-screen bg-black">
+        <div className="flex items-center justify-center min-h-screen">
+          <LoadingSpinner message="Authenticating..." />
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
-    console.log('⏳ Dashboard: Showing loading spinner');
+    console.log('⏳ Dashboard: Data loading, showing spinner');
     return (
       <div className="min-h-screen bg-black">
         <div className="flex items-center justify-center min-h-screen">
@@ -298,7 +332,7 @@ const Dashboard = () => {
     );
   }
 
-  console.log('✅ Dashboard: Rendering main dashboard content (Stripe disabled)');
+  console.log('✅ Dashboard: Rendering main dashboard content');
 
   return (
     <div className="min-h-screen bg-black">

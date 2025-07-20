@@ -27,8 +27,11 @@ export const TestimonialFormContainer = ({ survey, onSubmitSuccess }: Testimonia
   const [rateLimited, setRateLimited] = useState(false);
   const [cooldownTime, setCooldownTime] = useState(0);
 
+  console.log('🔄 TestimonialFormContainer: Component rendered with survey:', survey.id);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    console.log('📝 TestimonialFormContainer: Form field changed:', name, value.length);
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name as keyof TestimonialFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
@@ -38,7 +41,10 @@ export const TestimonialFormContainer = ({ survey, onSubmitSuccess }: Testimonia
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (submitting || rateLimited) return;
+    if (submitting || rateLimited) {
+      console.log('⚠️ TestimonialFormContainer: Submit blocked - submitting:', submitting, 'rateLimited:', rateLimited);
+      return;
+    }
 
     console.log('🚀 TestimonialFormContainer: Starting submission process');
     
@@ -46,15 +52,18 @@ export const TestimonialFormContainer = ({ survey, onSubmitSuccess }: Testimonia
       setSubmitting(true);
       setErrors({});
 
+      console.log('🔍 TestimonialFormContainer: Validating form data:', formData);
       const validation = validateTestimonial(formData);
+      
       if (!validation.success) {
         console.log('❌ TestimonialFormContainer: Validation failed:', validation.errors);
         setErrors(validation.errors);
         return;
       }
 
-      console.log('📝 TestimonialFormContainer: Submitting testimonial to survey:', survey.id);
+      console.log('✅ TestimonialFormContainer: Validation passed, submitting to survey:', survey.id);
       
+      const startTime = Date.now();
       const { error } = await supabase
         .from('testimonials')
         .insert({
@@ -63,6 +72,9 @@ export const TestimonialFormContainer = ({ survey, onSubmitSuccess }: Testimonia
           testimonial: formData.testimonial.trim(),
           survey_id: survey.id
         });
+
+      const queryTime = Date.now() - startTime;
+      console.log(`📊 TestimonialFormContainer: Insert query completed in ${queryTime}ms:`, { error });
 
       if (error) {
         console.error('❌ TestimonialFormContainer: Database error:', error);
@@ -76,6 +88,7 @@ export const TestimonialFormContainer = ({ survey, onSubmitSuccess }: Testimonia
       console.error('❌ TestimonialFormContainer: Submission error:', error);
       setErrors({ testimonial: error.message || "Failed to submit testimonial" });
     } finally {
+      console.log('📊 TestimonialFormContainer: Setting submitting to false');
       setSubmitting(false);
     }
   };

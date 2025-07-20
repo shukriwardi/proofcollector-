@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,10 +21,12 @@ const Submit = () => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  console.log('🔄 Submit: Component rendered (Stripe disabled) with linkId:', linkId);
+  console.log('🔄 Submit: Component rendered with linkId:', linkId);
 
   useEffect(() => {
     const fetchSurvey = async () => {
+      console.log('📊 Submit: fetchSurvey called with linkId:', linkId);
+      
       if (!linkId) {
         console.log('❌ Submit: No linkId provided');
         setError("Invalid survey link");
@@ -33,11 +36,11 @@ const Submit = () => {
 
       try {
         setLoading(true);
-        console.log('📊 Submit: Fetching survey (Stripe disabled) with ID:', linkId);
+        console.log('📊 Submit: Fetching survey with ID:', linkId);
         
         const startTime = Date.now();
         
-        // Updated query to include is_public column for RLS policy
+        // Query survey data - this should work for both public and owned surveys due to RLS
         const { data, error } = await supabase
           .from('surveys')
           .select('id, title, question, is_public')
@@ -45,7 +48,7 @@ const Submit = () => {
           .maybeSingle();
 
         const queryTime = Date.now() - startTime;
-        console.log(`📊 Submit: Survey query completed in ${queryTime}ms:`, { data, error });
+        console.log(`📊 Submit: Survey query completed in ${queryTime}ms:`, { data, error, linkId });
 
         if (error) {
           console.error('❌ Submit: Database error:', error);
@@ -67,8 +70,7 @@ const Submit = () => {
         setError(error.message || "Failed to load survey");
         setSurvey(null);
       } finally {
-        const totalTime = Date.now();
-        console.log(`📊 Submit: Setting loading to false - total time: ${totalTime}ms`);
+        console.log('📊 Submit: Setting loading to false');
         setLoading(false);
       }
     };
@@ -81,7 +83,7 @@ const Submit = () => {
     setSubmitted(true);
   };
 
-  console.log('📊 Submit: Current state (Stripe disabled):', { 
+  console.log('📊 Submit: Current state:', { 
     loading, 
     survey: !!survey, 
     submitted, 
@@ -110,7 +112,7 @@ const Submit = () => {
     return <TestimonialSuccess />;
   }
 
-  console.log('✅ Submit: Rendering testimonial form (Stripe disabled)');
+  console.log('✅ Submit: Rendering testimonial form');
 
   return (
     <div className="min-h-screen bg-black">
