@@ -52,6 +52,12 @@ const Submit = () => {
 
         if (error) {
           console.error('❌ Submit: Database error:', error);
+          console.error('❌ Submit: Error details:', {
+            message: error.message,
+            code: error.code,
+            hint: error.hint,
+            details: error.details
+          });
           throw error;
         }
 
@@ -67,6 +73,14 @@ const Submit = () => {
 
       } catch (error: any) {
         console.error('❌ Submit: Error fetching survey:', error);
+        console.error('❌ Submit: Full error object:', {
+          name: error.name,
+          message: error.message,
+          code: error.code,
+          hint: error.hint,
+          details: error.details,
+          stack: error.stack
+        });
         setError(error.message || "Failed to load survey");
         setSurvey(null);
       } finally {
@@ -75,7 +89,22 @@ const Submit = () => {
       }
     };
 
-    fetchSurvey();
+    // Add timeout fallback
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.error('⏰ Submit: Query timeout after 10 seconds');
+        setError("Request timed out. Please try again.");
+        setLoading(false);
+      }
+    }, 10000);
+
+    fetchSurvey().finally(() => {
+      clearTimeout(timeoutId);
+    });
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [linkId]);
 
   const handleSubmitSuccess = () => {

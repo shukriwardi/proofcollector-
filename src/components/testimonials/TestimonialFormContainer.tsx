@@ -2,8 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TestimonialForm } from "./TestimonialForm";
-import { validateTestimonial } from "@/lib/validation";
-import type { TestimonialFormData } from "@/lib/validation";
+import { toast } from "sonner";
 
 interface Survey {
   id: string;
@@ -16,93 +15,114 @@ interface TestimonialFormContainerProps {
   onSubmitSuccess: () => void;
 }
 
+interface FormData {
+  name: string;
+  email: string;
+  testimonial: string;
+}
+
+const validateForm = (data: FormData) => {
+  console.log('🔍 TestimonialFormContainer: Validating form data:', data);
+  
+  const errors: Partial<FormData> = {};
+
+  if (!data.name?.trim()) {
+    errors.name = "Name is required";
+  }
+
+  if (!data.testimonial?.trim()) {
+    errors.testimonial = "Testimonial is required";
+  }
+
+  if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+    errors.email = "Please enter a valid email address";
+  }
+
+  const hasErrors = Object.keys(errors).length > 0;
+  console.log('🔍 TestimonialFormContainer: Validation result:', { hasErrors, errors });
+
+  if (hasErrors) {
+    return { success: false, errors };
+  }
+
+  return { success: true, data };
+};
+
 export const TestimonialFormContainer = ({ survey, onSubmitSuccess }: TestimonialFormContainerProps) => {
-  const [formData, setFormData] = useState<TestimonialFormData>({
-    name: "",
-    email: "",
-    testimonial: ""
-  });
-  const [errors, setErrors] = useState<Partial<TestimonialFormData>>({});
-  const [submitting, setSubmitting] = useState(false);
-  const [rateLimited, setRateLimited] = useState(false);
-  const [cooldownTime, setCooldownTime] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   console.log('🔄 TestimonialFormContainer: Component rendered with survey:', survey.id);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    console.log('📝 TestimonialFormContainer: Form field changed:', name, value.length);
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name as keyof TestimonialFormData]) {
-      setErrors(prev => ({ ...prev, [name]: undefined }));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (formData: FormData) => {
+    console.log('📝 TestimonialFormContainer: handleSubmit called with data:', formData);
     
-    if (submitting || rateLimited) {
-      console.log('⚠️ TestimonialFormContainer: Submit blocked - submitting:', submitting, 'rateLimited:', rateLimited);
+    const validation = validateForm(formData);
+    
+    if (!validation.success) {
+      console.log('❌ TestimonialFormContainer: Validation failed:', validation.errors);
+      toast.error("Please fix the form errors");
       return;
     }
 
-    console.log('🚀 TestimonialFormContainer: Starting submission process');
-    
+    console.log('✅ TestimonialFormContainer: Validation passed, submitting testimonial');
+
+    setIsSubmitting(true);
+
     try {
-      setSubmitting(true);
-      setErrors({});
-
-      console.log('🔍 TestimonialFormContainer: Validating form data:', formData);
-      const validation = validateTestimonial(formData);
-      
-      if (!validation.success) {
-        console.log('❌ TestimonialFormContainer: Validation failed:', validation.errors);
-        setErrors(validation.errors);
-        return;
-      }
-
-      console.log('✅ TestimonialFormContainer: Validation passed, submitting to survey:', survey.id);
-      
       const startTime = Date.now();
-      const { error } = await supabase
+      console.log('📊 TestimonialFormContainer: Starting database insert');
+
+      const { data, error } = await supabase
         .from('testimonials')
         .insert({
-          name: formData.name.trim(),
-          email: formData.email.trim() || null,
-          testimonial: formData.testimonial.trim(),
-          survey_id: survey.id
-        });
+          survey_id: survey.id,
+          name: validation.data.name,
+          email: validation.data.email || null,
+          testimonial: validation.data.testimonial,
+        })
+        .select()
+        .single();
 
       const queryTime = Date.now() - startTime;
-      console.log(`📊 TestimonialFormContainer: Insert query completed in ${queryTime}ms:`, { error });
+      console.log(`📊 TestimonialFormContainer: Insert completed in ${queryTime}ms:`, { data, error });
 
       if (error) {
         console.error('❌ TestimonialFormContainer: Database error:', error);
+        console.error('❌ TestimonialFormContainer: Error details:', {
+          message: error.message,
+          code: error.code,
+          hint: error.hint,
+          details: error.details
+        });
         throw error;
       }
 
-      console.log('✅ TestimonialFormContainer: Testimonial submitted successfully');
+      console.log('✅ TestimonialFormContainer: Testimonial saved successfully:', data);
+      toast.success("Thank you for your testimonial!");
       onSubmitSuccess();
 
     } catch (error: any) {
-      console.error('❌ TestimonialFormContainer: Submission error:', error);
-      setErrors({ testimonial: error.message || "Failed to submit testimonial" });
+      console.error('❌ TestimonialFormContainer: Error submitting testimonial:', error);
+      console.error('❌ TestimonialFormContainer: Full error object:', {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+        hint: error.hint,
+        details: error.details,
+        stack: error.stack
+      });
+      toast.error("Failed to submit testimonial. Please try again.");
     } finally {
-      console.log('📊 TestimonialFormContainer: Setting submitting to false');
-      setSubmitting(false);
+      console.log('📊 TestimonialFormContainer: Setting isSubmitting to false');
+      setIsSubmitting(false);
     }
   };
 
   return (
     <TestimonialForm
-      formData={formData}
-      errors={errors}
-      rateLimited={rateLimited}
-      cooldownTime={cooldownTime}
-      submitting={submitting}
-      surveyQuestion={survey.question}
+      survey={survey}
       onSubmit={handleSubmit}
-      onChange={handleChange}
+      isSubmitting={isSubmitting}
     />
   );
 };
