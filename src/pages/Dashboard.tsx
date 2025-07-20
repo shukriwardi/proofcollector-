@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -33,6 +32,8 @@ const Dashboard = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  console.log('🔄 Dashboard: Component rendered with user:', user?.id);
+
   // Memoize survey stats to prevent recalculation on every render
   const totalTestimonials = useMemo(() => 
     surveys.reduce((sum, survey) => sum + (survey.testimonial_count || 0), 0), 
@@ -41,13 +42,14 @@ const Dashboard = () => {
 
   const fetchSurveys = useCallback(async () => {
     if (!user?.id) {
+      console.log('❌ Dashboard: No user ID, skipping fetch');
       setLoading(false);
       return;
     }
     
     try {
       setLoading(true);
-      console.log('📊 Fetching surveys for user:', user.id);
+      console.log('📊 Dashboard: Starting fetchSurveys for user:', user.id);
       
       // Simple query without complex timeout handling
       const { data, error } = await supabase
@@ -56,19 +58,24 @@ const Dashboard = () => {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
+      console.log('📊 Dashboard: Surveys query response:', { data, error });
+
       if (error) {
-        console.error('❌ Error fetching surveys:', error);
+        console.error('❌ Dashboard: Error fetching surveys:', error);
         throw error;
       }
 
       if (data && data.length > 0) {
+        console.log('📊 Dashboard: Found surveys, fetching testimonial counts...');
         const surveyIds = data.map(s => s.id);
         
         // Fetch testimonial counts separately
-        const { data: testimonialCounts } = await supabase
+        const { data: testimonialCounts, error: countError } = await supabase
           .from('testimonials')
           .select('survey_id')
           .in('survey_id', surveyIds);
+
+        console.log('📊 Dashboard: Testimonial counts query:', { testimonialCounts, countError });
 
         const countMap = testimonialCounts?.reduce((acc, t) => {
           acc[t.survey_id] = (acc[t.survey_id] || 0) + 1;
@@ -80,13 +87,14 @@ const Dashboard = () => {
           testimonial_count: countMap[survey.id] || 0
         }));
 
-        console.log('✅ Surveys fetched:', surveysWithCounts.length);
+        console.log('✅ Dashboard: Final surveys data:', surveysWithCounts);
         setSurveys(surveysWithCounts);
       } else {
+        console.log('📊 Dashboard: No surveys found, setting empty array');
         setSurveys(data || []);
       }
     } catch (error: any) {
-      console.error('❌ Error fetching surveys:', error);
+      console.error('❌ Dashboard: Error in fetchSurveys:', error);
       toast({
         title: "Error loading surveys",
         description: "Please refresh the page to try again.",
@@ -94,24 +102,30 @@ const Dashboard = () => {
       });
       setSurveys([]);
     } finally {
+      console.log('📊 Dashboard: Setting loading to false');
       setLoading(false);
     }
   }, [user?.id, toast]);
 
   useEffect(() => {
+    console.log('🔄 Dashboard: useEffect triggered with user.id:', user?.id);
     if (user?.id) {
       fetchSurveys();
     } else {
+      console.log('📊 Dashboard: No user, setting loading to false');
       setLoading(false);
     }
   }, [user?.id]); // Only depend on user.id
 
   const validateForm = useCallback((): boolean => {
+    console.log('🔍 Dashboard: Validating form data:', formData);
     try {
       surveySchema.parse(formData);
       setErrors({});
+      console.log('✅ Dashboard: Form validation passed');
       return true;
     } catch (error: any) {
+      console.log('❌ Dashboard: Form validation failed:', error);
       const fieldErrors: Partial<SurveyFormData> = {};
       error.errors?.forEach((err: any) => {
         const field = err.path[0] as keyof SurveyFormData;
@@ -123,11 +137,14 @@ const Dashboard = () => {
   }, [formData]);
 
   const handleCreateSurvey = useCallback(async () => {
+    console.log('🔄 Dashboard: handleCreateSurvey called');
     if (creatingSurvey || !user?.id) {
+      console.log('❌ Dashboard: Already creating or no user, aborting');
       return;
     }
 
     if (!validateForm()) {
+      console.log('❌ Dashboard: Form validation failed');
       toast({
         title: "Validation Error",
         description: "Please fix the errors in the form.",
@@ -140,6 +157,7 @@ const Dashboard = () => {
     const rateCheck = checkRateLimit(`survey_creation_${user.id}`, 10, 60 * 60 * 1000);
     
     if (!rateCheck.allowed) {
+      console.log('❌ Dashboard: Rate limit exceeded');
       setRateLimited(true);
       toast({
         title: "Rate Limit Exceeded",
@@ -151,7 +169,7 @@ const Dashboard = () => {
 
     try {
       setCreatingSurvey(true);
-      console.log('🔄 Creating survey...');
+      console.log('🔄 Dashboard: Creating survey with data:', formData);
 
       const sanitizedData = {
         title: sanitizeText(formData.title),
@@ -159,18 +177,25 @@ const Dashboard = () => {
         user_id: user.id
       };
 
+      console.log('🔄 Dashboard: Sanitized survey data:', sanitizedData);
+
       const { data, error } = await supabase
         .from('surveys')
         .insert([sanitizedData])
         .select()
         .single();
 
+      console.log('📊 Dashboard: Survey creation response:', { data, error });
+
       if (error) throw error;
 
-      console.log('✅ Survey created successfully');
+      console.log('✅ Dashboard: Survey created successfully:', data);
 
       const newSurvey = { ...data, testimonial_count: 0 };
-      setSurveys(prevSurveys => [newSurvey, ...prevSurveys]);
+      setSurveys(prevSurveys => {
+        console.log('📊 Dashboard: Adding new survey to list');
+        return [newSurvey, ...prevSurveys];
+      });
       
       setFormData({ title: "", question: "" });
       setIsCreateDialogOpen(false);
@@ -181,13 +206,14 @@ const Dashboard = () => {
       });
 
     } catch (error) {
-      console.error('❌ Error creating survey:', error);
+      console.error('❌ Dashboard: Error creating survey:', error);
       toast({
         title: "Error",
         description: getGenericErrorMessage('database'),
         variant: "destructive",
       });
     } finally {
+      console.log('📊 Dashboard: Setting creatingSurvey to false');
       setCreatingSurvey(false);
     }
   }, [creatingSurvey, validateForm, user?.id, formData, toast]);
@@ -235,7 +261,10 @@ const Dashboard = () => {
     }
   }, [copyToClipboard]);
 
+  console.log('📊 Dashboard: Current state:', { loading, surveys: surveys.length, user: !!user });
+
   if (loading) {
+    console.log('⏳ Dashboard: Showing loading spinner');
     return (
       <div className="min-h-screen bg-black">
         <div className="flex items-center justify-center min-h-screen">
@@ -244,6 +273,8 @@ const Dashboard = () => {
       </div>
     );
   }
+
+  console.log('✅ Dashboard: Rendering main dashboard content');
 
   return (
     <div className="min-h-screen bg-black">
