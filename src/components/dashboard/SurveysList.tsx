@@ -2,7 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, Copy, ExternalLink, Plus, Calendar, BarChart } from "lucide-react";
+import { MessageCircle, Copy, ExternalLink, Plus, Calendar, BarChart, Globe, Lock } from "lucide-react";
 import { CreateSurveyDialog } from "./CreateSurveyDialog";
 import { type SurveyFormData } from "@/lib/validation";
 
@@ -11,6 +11,7 @@ interface Survey {
   title: string;
   question: string;
   created_at: string;
+  is_public?: boolean;
   testimonial_count?: number;
 }
 
@@ -25,6 +26,7 @@ interface SurveysListProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onCopyLink: (url: string) => void;
   onShareLink: (url: string, title: string) => void;
+  onTogglePublic: (surveyId: string, currentState: boolean) => void;
   generateSurveyUrl: (surveyId: string) => string;
   loading?: boolean;
 }
@@ -40,6 +42,7 @@ export const SurveysList = ({
   onChange,
   onCopyLink,
   onShareLink,
+  onTogglePublic,
   generateSurveyUrl,
   loading = false
 }: SurveysListProps) => {
@@ -75,7 +78,22 @@ export const SurveysList = ({
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-xl font-semibold text-white mb-2 truncate">{survey.title}</h3>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-xl font-semibold text-white truncate">{survey.title}</h3>
+                    <div className="flex items-center gap-2">
+                      {survey.is_public ? (
+                        <div className="flex items-center gap-1 text-green-400 text-sm">
+                          <Globe className="h-4 w-4" />
+                          <span>Public</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-gray-400 text-sm">
+                          <Lock className="h-4 w-4" />
+                          <span>Private</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <p className="text-gray-400 leading-relaxed line-clamp-2">{survey.question}</p>
                 </div>
               </div>
@@ -91,7 +109,7 @@ export const SurveysList = ({
                 </div>
               </div>
               
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 mb-4">
                 <Input
                   value={generateSurveyUrl(survey.id)}
                   readOnly
@@ -101,7 +119,7 @@ export const SurveysList = ({
                   variant="outline"
                   size="sm"
                   onClick={() => onCopyLink(generateSurveyUrl(survey.id))}
-                  className="rounded-lg border-gray-700 bg-gray-800 hover:bg-purple-600 hover:border-purple-500 px-4 text-gray-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
+                  className="rounded-lg border-gray-700 bg-gray-800 hover:bg-purple-600 hover:border-purple-500 px-4 text-gray-300 hover:text-white transition-all duration-200"
                   title="Copy link"
                 >
                   <Copy className="h-4 w-4 mr-2" />
@@ -111,11 +129,36 @@ export const SurveysList = ({
                   variant="outline"
                   size="sm"
                   onClick={() => onShareLink(generateSurveyUrl(survey.id), survey.title)}
-                  className="rounded-lg border-gray-700 bg-gray-800 hover:bg-purple-600 hover:border-purple-500 px-4 text-gray-300 hover:text-white transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20"
+                  className="rounded-lg border-gray-700 bg-gray-800 hover:bg-purple-600 hover:border-purple-500 px-4 text-gray-300 hover:text-white transition-all duration-200"
                   title="Share link"
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Share
+                </Button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onTogglePublic(survey.id, survey.is_public || false)}
+                  className={`rounded-lg border-gray-700 px-4 text-sm transition-all duration-200 ${
+                    survey.is_public 
+                      ? 'bg-green-600 hover:bg-green-700 text-white border-green-500' 
+                      : 'bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white'
+                  }`}
+                >
+                  {survey.is_public ? (
+                    <>
+                      <Globe className="h-4 w-4 mr-2" />
+                      Make Private
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-4 w-4 mr-2" />
+                      Make Public
+                    </>
+                  )}
                 </Button>
               </div>
             </div>

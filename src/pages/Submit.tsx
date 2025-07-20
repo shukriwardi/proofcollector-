@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
@@ -18,6 +19,7 @@ interface Survey {
   question: string;
   user_id: string;
   created_at: string;
+  is_public?: boolean;
 }
 
 const Submit = () => {
@@ -70,12 +72,14 @@ const Submit = () => {
       setLoading(true);
       setError(null);
 
-      // Simple direct query without complex timeout handling
+      // Query now works with the updated RLS policy that allows public surveys
       const { data, error: fetchError } = await supabase
         .from('surveys')
-        .select('id, title, question, user_id, created_at')
+        .select('id, title, question, user_id, created_at, is_public')
         .eq('id', surveyId)
         .maybeSingle();
+
+      console.log('📊 Survey query result:', { data, error: fetchError });
 
       if (fetchError) {
         console.error('❌ Supabase error:', fetchError);
@@ -84,7 +88,7 @@ const Submit = () => {
 
       if (!data) {
         console.log('📭 No survey found with ID:', surveyId);
-        setError('Survey not found');
+        setError('Survey not found or not accessible');
         setSurvey(null);
         return;
       }

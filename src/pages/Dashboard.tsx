@@ -15,6 +15,7 @@ interface Survey {
   title: string;
   question: string;
   created_at: string;
+  is_public?: boolean;
   testimonial_count?: number;
 }
 
@@ -51,10 +52,10 @@ const Dashboard = () => {
       setLoading(true);
       console.log('📊 Dashboard: Starting fetchSurveys for user:', user.id);
       
-      // Simple query without complex timeout handling
+      // Updated query to include is_public column
       const { data, error } = await supabase
         .from('surveys')
-        .select('id, title, question, created_at')
+        .select('id, title, question, created_at, is_public')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -227,6 +228,38 @@ const Dashboard = () => {
     }
   }, [errors]);
 
+  const toggleSurveyPublic = useCallback(async (surveyId: string, currentPublicState: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('surveys')
+        .update({ is_public: !currentPublicState })
+        .eq('id', surveyId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+
+      setSurveys(prev => prev.map(survey => 
+        survey.id === surveyId 
+          ? { ...survey, is_public: !currentPublicState }
+          : survey
+      ));
+
+      toast({
+        title: !currentPublicState ? "Survey Made Public" : "Survey Made Private",
+        description: !currentPublicState 
+          ? "Anyone with the link can now access this survey"
+          : "Only you can access this survey now",
+      });
+    } catch (error) {
+      console.error('Error toggling survey public state:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update survey visibility",
+        variant: "destructive",
+      });
+    }
+  }, [user?.id, toast]);
+
   const generateSurveyUrl = useCallback((surveyId: string) => {
     const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
     return `${currentOrigin}/submit/${surveyId}`;
@@ -320,6 +353,7 @@ const Dashboard = () => {
             onChange={handleChange}
             onCopyLink={copyToClipboard}
             onShareLink={shareLink}
+            onTogglePublic={toggleSurveyPublic}
             generateSurveyUrl={generateSurveyUrl}
             loading={creatingSurvey}
           />
