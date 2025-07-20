@@ -144,7 +144,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_public_survey: {
+        Args: { link_id: string }
+        Returns: {
+          id: string
+          title: string
+          question: string
+          is_public: boolean
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

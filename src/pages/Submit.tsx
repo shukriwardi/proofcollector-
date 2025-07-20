@@ -40,15 +40,18 @@ const Submit = () => {
         
         const startTime = Date.now();
         
-        // Query survey data - this should work for both public and owned surveys due to RLS
+        // Use RPC call to get public survey data
         const { data, error } = await supabase
-          .from('surveys')
-          .select('id, title, question, is_public')
-          .eq('id', linkId)
-          .maybeSingle();
+          .rpc('get_public_survey', { link_id: linkId })
+          .then(res => {
+            if (Array.isArray(res.data)) {
+              return { data: res.data[0], error: res.error };
+            }
+            return res;
+          });
 
         const queryTime = Date.now() - startTime;
-        console.log(`📊 Submit: Survey query completed in ${queryTime}ms:`, { data, error, linkId });
+        console.log(`📊 Submit: Survey RPC query completed in ${queryTime}ms:`, { data, error, linkId });
 
         if (error) {
           console.error('❌ Submit: Database error:', error);
