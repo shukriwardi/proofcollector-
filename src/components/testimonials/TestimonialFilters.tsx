@@ -1,25 +1,48 @@
 
-import { TestimonialSearch } from "./TestimonialSearch";
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Filter } from "lucide-react";
+import { Dispatch, SetStateAction } from "react";
 
-interface TestimonialFiltersProps {
-  searchTerm: string;
-  onSearchChange: (value: string) => void;
+interface Survey {
+  id: string;
+  title: string;
 }
 
-export const TestimonialFilters = ({ searchTerm, onSearchChange }: TestimonialFiltersProps) => {
+interface TestimonialFiltersProps {
+  surveys: Survey[];
+  selectedSurvey: string;
+  onSurveyChange: Dispatch<SetStateAction<string>>;
+}
+
+export const TestimonialFilters = ({ surveys, selectedSurvey, onSurveyChange }: TestimonialFiltersProps) => {
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-      <div>
-        <h1 className="text-3xl font-bold text-black">ProofCollector</h1>
-        <p className="text-gray-600 mt-2">Manage and display your collected social proof</p>
+    <Card className="p-6 bg-gray-900 border border-gray-800 shadow-lg rounded-xl">
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2">
+          <Filter className="h-5 w-5 text-purple-400" />
+          <h3 className="text-lg font-semibold text-white">Filters</h3>
+        </div>
+        
+        <div className="space-y-3">
+          <label className="text-sm font-medium text-gray-300">Survey Source</label>
+          <Select value={selectedSurvey} onValueChange={onSurveyChange}>
+            <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+              <SelectValue placeholder="Select a survey" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectItem value="all" className="text-white hover:bg-gray-700">
+                All Surveys ({surveys.length})
+              </SelectItem>
+              {surveys.map((survey) => (
+                <SelectItem key={survey.id} value={survey.id} className="text-white hover:bg-gray-700">
+                  {survey.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-      
-      <div className="flex items-center space-x-4">
-        <TestimonialSearch 
-          searchTerm={searchTerm} 
-          onSearchChange={onSearchChange} 
-        />
-      </div>
-    </div>
+    </Card>
   );
 };

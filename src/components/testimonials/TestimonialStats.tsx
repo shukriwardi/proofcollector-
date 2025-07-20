@@ -4,10 +4,11 @@ import { MessageCircle, CheckCircle, BarChart3 } from "lucide-react";
 
 interface TestimonialStatsProps {
   totalTestimonials: number;
-  uniqueSurveys: number;
+  totalSurveys: number;
+  averageRating: number;
 }
 
-export const TestimonialStats = ({ totalTestimonials, uniqueSurveys }: TestimonialStatsProps) => {
+export const TestimonialStats = ({ totalTestimonials, totalSurveys, averageRating }: TestimonialStatsProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Card className="p-6 bg-gray-900 border border-gray-800 shadow-lg rounded-xl hover:shadow-purple-500/20 hover:shadow-xl transition-all duration-300 hover:border-purple-500/50">
@@ -40,7 +41,7 @@ export const TestimonialStats = ({ totalTestimonials, uniqueSurveys }: Testimoni
             <BarChart3 className="h-5 w-5 text-purple-400" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-white">{uniqueSurveys}</p>
+            <p className="text-2xl font-bold text-white">{totalSurveys}</p>
             <p className="text-sm text-gray-400">Survey Sources</p>
           </div>
         </div>

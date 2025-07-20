@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { TestimonialForm } from "@/components/testimonials/TestimonialForm";
+import { TestimonialFormContainer } from "@/components/testimonials/TestimonialFormContainer";
 import { TestimonialSuccess } from "@/components/testimonials/TestimonialSuccess";
 import { SurveyNotFound } from "@/components/testimonials/SurveyNotFound";
 import { LoadingSpinner } from "@/components/testimonials/LoadingSpinner";
@@ -115,7 +114,7 @@ const Submit = () => {
 
   return (
     <div className="min-h-screen bg-black">
-      <TestimonialForm 
+      <TestimonialFormContainer 
         survey={survey}
         onSubmitSuccess={handleSubmitSuccess}
       />
